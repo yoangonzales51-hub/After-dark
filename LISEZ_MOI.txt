@@ -1,0 +1,33 @@
+# AFTER DARK — pack catalogue complet
+
+## Contenu
+- `index.html` : application PWA locale avec catalogue embarqué et bouton facultatif « C’est quoi ? » pour les cartes spécialisées.
+- `catalogue_600.json` : catalogue de 600 cartes classiques.
+- `cartes_mythiques.json` : 25 récompenses Mythiques séparées du paquet classique, liées à des succès thématiques.
+- `supabase.sql` : schéma existant et tables de catalogue à installer sur le projet Supabase cible si vous décidez de synchroniser le catalogue.
+
+## Répartition des 600 cartes
+| Niveau | Découvertes | Défis indépendants | Réalisations | Total |
+|---|---:|---:|---:|---:|
+| Soft | 75 | 50 | 25 | 150 |
+| Hard | 75 | 50 | 25 | 150 |
+| Spicy | 75 | 50 | 25 | 150 |
+| Spicy Extrême | 75 | 50 | 25 | 150 |
+| **Total** | **300** | **200** | **100** | **600** |
+
+Les trois propositions de découverte d'un même thème partagent le même `themeId` et le même `linkedRealizationId`. Les défis indépendants ne débloquent pas de réalisation. Les réalisations sont différées et doivent être proposées séparément.
+
+## Cartes Mythiques
+Les 25 cartes Mythiques sont hors des 600 cartes classiques. Chaque carte possède un `achievementId`, une condition de déblocage thématique et `hiddenUntilUnlocked: true`. Elles ne doivent pas être affichées dans le paquet normal.
+
+## Explications facultatives
+Le champ `explanation` n'est présent que lorsqu'une carte contient un terme ou une pratique moins courante. Dans l'application, le bouton « C'est quoi ? » n'apparaît que si ce champ existe.
+
+## Identifiants
+Les 300 identifiants précédents `AD-001` à `AD-300` sont conservés. Les 300 nouvelles cartes utilisent `AD-301` à `AD-600`.
+
+## Important — état fonctionnel
+Ce pack consolide le catalogue, les types de cartes, les liens exacts vers les réalisations, les explications facultatives et le catalogue Mythique. Il ne faut pas confondre la présence des données avec l'implémentation complète de toutes les règles de partie : le moteur actuel de l'application doit encore être adapté pour exécuter le parcours conditionnel exact (WHY NOT → proposition alternative ; réponse NON → vérification de thème ; blocage du succès si refus du thème), ainsi que le déblocage des succès Mythiques. Le mode à distance Supabase n'est pas activé par ce pack et ne doit pas être considéré comme opérationnel.
+
+## Installation
+Remplacer les fichiers de l'ancien dossier par ceux de ce pack et publier `index.html` avec les ressources PWA déjà présentes dans le dépôt (`manifest.webmanifest`, icônes, `sw.js`). Ne pas supprimer les fichiers PWA du dépôt.

@@ -1,0 +1,25 @@
+AFTER DARK — PACK CATALOGUE COMPLET
+
+FICHIERS
+- index.html : application locale avec les 600 cartes classiques intégrées, les trois types de cartes, les liens vers les réalisations différées et le bouton facultatif « C’est quoi ? » lorsque la carte possède une explication.
+- catalogue_600.json : version indépendante et modifiable du catalogue complet.
+- cartes_mythiques.json : 25 cartes Mythiques et leurs succès thématiques associés, conservées à part du paquet classique.
+- supabase.sql : schéma SQL antérieur, complété par les tables de catalogue card_catalog et mythic_catalog.
+- LISEZ_MOI.txt : répartition et limites de cette livraison.
+
+RÉPARTITION
+600 cartes classiques : 150 par niveau. Chaque niveau contient 75 découvertes, 50 défis indépendants et 25 réalisations différées. Au total : 300 découvertes, 200 défis indépendants et 100 réalisations. Les 25 cartes Mythiques sont en supplément et ne sont pas comprises dans les 600.
+
+MISE À JOUR GITHUB PAGES
+1. Ouvre https://github.com/yoangonzales51-hub/After-dark
+2. Remplace index.html par celui du pack et valide le commit sur la branche publiée.
+3. Conserve les ressources PWA déjà présentes dans le dépôt (manifest.webmanifest, icônes et sw.js).
+4. Recharge le site après la publication. Sur Android, ferme puis rouvre la PWA si l'ancien cache reste affiché.
+
+SUPABASE
+Le SQL ajoute des tables de catalogue, mais cette livraison ne raccorde pas le jeu à la synchronisation Supabase. Le mode à distance n'est donc pas opérationnel. N'utilise jamais une clé service_role dans index.html.
+
+ÉTAT FONCTIONNEL À NE PAS CONFONDRE
+Le catalogue, les identifiants, les types, les alternatives de découverte, les liens exacts vers les réalisations et les explications facultatives sont présents. En revanche, le moteur de partie de cette version n'exécute pas encore intégralement les embranchements conditionnels approuvés (WHY NOT → proposition alternative ; réponse NON → vérification du thème ; refus du thème → succès associé masqué) ni le déblocage effectif des cartes Mythiques par succès. Les 25 cartes Mythiques et leurs conditions thématiques sont fournies comme données, pas encore activées dans l'interface.
+
+La sauvegarde locale existante est conservée. Avant d'utiliser le jeu à deux sur deux téléphones, il faudra intégrer et tester la synchronisation distante.

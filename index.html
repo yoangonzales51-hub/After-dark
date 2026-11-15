@@ -60,7 +60,33 @@ let adSupabase=null, adCoupleId=null;
 function cloudClient(){if(!window.supabase?.createClient){throw new Error('La bibliothèque Supabase ne s’est pas chargée. Vérifie ta connexion Internet.')}if(!adSupabase)adSupabase=window.supabase.createClient(AD_SUPABASE_URL,AD_SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});return adSupabase}
 function cloudMessage(msg,isError=false){const el=document.getElementById('cloudStatus');el.textContent=msg;el.style.borderColor=isError?'#a94b55':'#392330'}
 function cloudCredentials(){const email=document.getElementById('cloudEmail').value.trim();const password=document.getElementById('cloudPassword').value;if(!email||!password)throw new Error('Renseigne ton adresse e-mail et ton mot de passe.');if(password.length<8)throw new Error('Choisis un mot de passe de 8 caractères minimum.');return {email,password}}
-async function cloudSignUp(){try{const c=cloudClient(),{email,password}=cloudCredentials();const {data,error}=await c.auth.signUp({email,password});if(error)throw error;if(data.session){cloudMessage('Compte créé et connecté.');document.getElementById('pairingArea').classList.remove('hidden')}else cloudMessage('Compte créé. Vérifie ta boîte e-mail pour confirmer ton adresse, puis connecte-toi.')}catch(e){cloudMessage(e.message||'Création du compte impossible.',true)}}
+
+async function cloudSignUp(){
+  try {
+    const c = cloudClient();
+    const {email,password} = cloudCredentials();
+
+    const {data,error} = await c.auth.signUp({
+      email,
+      password,
+      options: {
+        emailRedirectTo: window.location.origin + window.location.pathname
+      }
+    });
+
+    if(error) throw error;
+
+    if(data.session){
+      cloudMessage('Compte créé et connecté.');
+      document.getElementById('pairingArea').classList.remove('hidden');
+    } else {
+      cloudMessage('Compte créé. Vérifie ta boîte e-mail pour confirmer ton adresse, puis connecte-toi.');
+    }
+  } catch(e) {
+    cloudMessage(e.message || 'Création du compte impossible.',true);
+  }
+}
+  
 async function cloudSignIn(){try{const c=cloudClient(),{email,password}=cloudCredentials();const {error}=await c.auth.signInWithPassword({email,password});if(error)throw error;cloudMessage('Connexion réussie.');document.getElementById('pairingArea').classList.remove('hidden');await cloudRefresh()}catch(e){cloudMessage(e.message||'Connexion impossible.',true)}}
 async function cloudRefresh(){try{const c=cloudClient();const {data:{user}}=await c.auth.getUser();if(!user){document.getElementById('pairingArea').classList.add('hidden');cloudMessage('Connecte-toi ou crée ton compte pour continuer.');return}document.getElementById('pairingArea').classList.remove('hidden');const {data,error}=await c.from('couple_members').select('couple_id,nickname').eq('user_id',user.id).maybeSingle();if(error)throw error;if(data){adCoupleId=data.couple_id;cloudMessage('Connecté sous le pseudonyme « '+data.nickname+' ». Votre couple est associé.');document.getElementById('remoteLobbyStatus').textContent='Couple associé. Vous pouvez créer une partie ou reprendre une partie en cours.';document.getElementById('pairingArea').classList.add('hidden');if(!document.getElementById('openRemoteLobby')){const b=document.createElement('button');b.id='openRemoteLobby';b.className='btn';b.textContent='Ouvrir votre espace de jeu';b.onclick=()=>show('remoteLobby');document.getElementById('remoteAuth').insertBefore(b,document.getElementById('pairingArea'));}}else{adCoupleId=null;cloudMessage('Connecté. Crée un couple ou saisis le code de ton/ta partenaire.');}}catch(e){cloudMessage(e.message||'Vérification du compte impossible.',true)}}
 async function cloudCreateCouple(){try{const c=cloudClient(),nickname=document.getElementById('cloudNickname').value.trim();if(!nickname)throw new Error('Renseigne ton pseudonyme.');const {data,error}=await c.rpc('create_couple',{p_nickname:nickname});if(error)throw error;const row=Array.isArray(data)?data[0]:data;if(!row?.invite_code)throw new Error('Le code d’invitation n’a pas été retourné.');adCoupleId=row.couple_id;const el=document.getElementById('inviteResult');el.classList.remove('hidden');el.textContent='Ton code privé : '+row.invite_code+' — transmets-le à ton/ta partenaire. Il expire dans 24 heures et ne peut servir qu’une fois.';cloudMessage('Couple créé. Garde le code d’invitation privé.');await cloudRefresh()}catch(e){cloudMessage(e.message||'Création du couple impossible.',true)}}

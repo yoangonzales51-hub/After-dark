@@ -54,8 +54,8 @@ function escapeHtml(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':
 load();document.getElementById('p1').value=data.names[0];document.getElementById('p2').value=data.names[1];
 
 // AFTER DARK — connexion Supabase et association privée (étape intégration)
-const AD_SUPABASE_URL='https://lyqjgawhkhoscirxojui.supabase.co';
-const AD_SUPABASE_KEY='sb_publishable_9GP_St5QPyorwwKWp9b-Yg_kNa4YZyT';
+const AD_SUPABASE_URL='https://ejmidupqavmgyowwlwqn.supabase.co';
+const AD_SUPABASE_KEY='sb_publishable_O_muYBq3GMyTYw3UZZj9WQ_Yc6K0K1L';
 let adSupabase=null, adCoupleId=null;
 function cloudClient(){if(!window.supabase?.createClient){throw new Error('La bibliothèque Supabase ne s’est pas chargée. Vérifie ta connexion Internet.')}if(!adSupabase)adSupabase=window.supabase.createClient(AD_SUPABASE_URL,AD_SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});return adSupabase}
 function cloudMessage(msg,isError=false){const el=document.getElementById('cloudStatus');el.textContent=msg;el.style.borderColor=isError?'#a94b55':'#392330'}

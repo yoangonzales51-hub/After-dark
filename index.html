@@ -810,6 +810,7 @@ async function remoteRefreshStatus(){
   remoteStatus(afterDarkCoupleId
    ? 'Connecté : '+user.email+' · couple associé. Vous pouvez lancer ou reprendre votre partie à distance.'
    : 'Connecté : '+user.email+' · aucun couple associé pour le moment.');
+  await remoteSyncPastRounds();
   await remoteRefreshLatestRound();
  }catch(e){remoteStatus('Erreur : '+(e.message||String(e)),true);}
 }
@@ -949,6 +950,23 @@ function remoteSyncPairedResults(state){
   data.history.unshift({remoteRoundId:remoteGame.roundId,date:new Date().toISOString(),accepted,curious});
  }
  session.playerMode=previousMode;save();
+}
+
+async function remoteSyncPastRounds(){
+ if(!afterDarkSupabase||!afterDarkCoupleId)return;
+ const previousRound=remoteGame.roundId;
+ try{
+  const {data:rounds,error}=await afterDarkSupabase.from('remote_rounds').select('id,status').eq('couple_id',afterDarkCoupleId).eq('status','completed').order('created_at',{ascending:false}).limit(30);
+  if(error)throw error;
+  for(const round of (rounds||[])){
+   if(data.history.some(x=>x.remoteRoundId===round.id))continue;
+   remoteGame.roundId=round.id;
+   const {data:state,error:stateError}=await afterDarkSupabase.rpc('remote_round_state_v2',{p_round_id:round.id});
+   if(stateError)throw stateError;
+   remoteSyncPairedResults(state);
+  }
+ }catch(e){console.warn('AFTER DARK remote history sync',e)}
+ finally{remoteGame.roundId=previousRound}
 }
 function remoteRenderRound(){
  const state=remoteGame.state;if(!state)return;

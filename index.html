@@ -231,7 +231,34 @@ function recordAttempt(c,a,b){
  save();
 }
 function getCategoryStats(category){
-  function handleCategoryClick(button){
+ const attempts=(data.attempts||[]).filter(item=>
+  item.category===category&&
+  item.outcome!=='pass'&&
+  item.type!=='verification'&&
+  item.type!=='categoryVerification'
+ );
+ let favorable=0,defavorable=0;
+ attempts.forEach(item=>{
+  const answers=[item.player1?.answer];
+  if(item.playerCount!==1)answers.push(item.player2?.answer);
+  const positive=answers.filter(a=>a==='yes'||a==='maybe').length;
+  const negative=answers.filter(a=>a==='no').length;
+  if(positive>negative)favorable++;
+  else if(negative>positive)defavorable++;
+ });
+ const total=favorable+defavorable;
+ const percentage=total?Math.round(favorable/total*100):100;
+ const forcedOpen=!!data.categoryOverrides?.[category];
+ return {
+  favorable,
+  defavorable,
+  total,
+  percentage,
+  forcedOpen,
+  open:forcedOpen||percentage>=50
+ };
+}
+function handleCategoryClick(button){
  const category=button.dataset.category;
  const stats=getCategoryStats(category);
  if(stats.open){
@@ -285,33 +312,6 @@ function finishCategoryVerification(c){
  save();
  renderHistory();
  show('history');
-}
- const attempts=(data.attempts||[]).filter(item=>
-  item.category===category&&
-  item.outcome!=='pass'&&
-  item.type!=='verification'&&
-  item.type!=='categoryVerification'
- );
- let favorable=0,defavorable=0;
- attempts.forEach(item=>{
-  const answers=[item.player1?.answer];
-  if(item.playerCount!==1)answers.push(item.player2?.answer);
-  const positive=answers.filter(a=>a==='yes'||a==='maybe').length;
-  const negative=answers.filter(a=>a==='no').length;
-  if(positive>negative)favorable++;
-  else if(negative>positive)defavorable++;
- });
- const total=favorable+defavorable;
- const percentage=total?Math.round(favorable/total*100):100;
- const forcedOpen=!!data.categoryOverrides?.[category];
- return {
-  favorable,
-  defavorable,
-  total,
-  percentage,
-  forcedOpen,
-  open:forcedOpen||percentage>=50
- };
 }
 function addTodo(c,status,source){
  if(!c)return null;let t=data.todo.find(x=>x.id===c.id);

@@ -1023,8 +1023,8 @@ function remoteSyncPairedResults(state){
  });
  if(state.status==='completed'&&!data.history.some(x=>x.remoteRoundId===remoteGame.roundId)){
   const attempts=data.attempts.filter(x=>x.remoteRoundId===remoteGame.roundId);
-  const accepted=attempts.filter(x=>x.outcome==='accepted'&&x.type!=='categoryVerification').map(x=>x.cardId);
-  const curious=attempts.filter(x=>x.outcome==='curious'&&x.type!=='categoryVerification').map(x=>x.cardId);
+  const accepted=attempts.filter(x=>x.outcome==='accepted'&&x.type!=='categoryVerification'&&x.cardId&&!x.remoteProposal).map(x=>x.cardId);
+  const curious=attempts.filter(x=>x.outcome==='curious'&&x.type!=='categoryVerification'&&x.cardId&&!x.remoteProposal).map(x=>x.cardId);
   data.rounds=(data.rounds||0)+1;data.matches=(data.matches||0)+accepted.length;
   data.history.unshift({remoteRoundId:remoteGame.roundId,date:new Date().toISOString(),accepted,curious});
  }

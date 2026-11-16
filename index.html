@@ -1000,7 +1000,7 @@ function remoteSyncPairedResults(state){
   const a=item.my_answer==='skip'?'pass':item.my_answer,b=item.partner_answer==='skip'?'pass':item.partner_answer;
   const category=c.cat||c.category||c.themeId||'Non classée';
   const outcome=c.type==='categoryVerification'?(a==='yes'&&b==='yes'?'accepted':'other'):(a==='pass'||b==='pass')?'pass':isYesMatch(a,b)?'accepted':isMaybeMatch(a,b)?'curious':(a==='no'||b==='no')?'refused':'other';
-  data.attempts.unshift({remoteRoundId:remoteGame.roundId,date:new Date().toISOString(),cardId:c.id,title:c.title||'Proposition',category,type:c.type||c.kind||'unknown',themeId:c.themeId||null,playerCount:2,player1:{name:'Vous',answer:a},player2:{name:'Partenaire',answer:b},outcome});
+  data.attempts.unshift({remoteRoundId:remoteGame.roundId,remoteProposal:item.card_type==='todo_proposal',date:new Date().toISOString(),cardId:c.id,title:c.title||'Proposition',category,type:c.type||c.kind||'unknown',themeId:c.themeId||null,playerCount:2,player1:{name:'Vous',answer:a},player2:{name:'Partenaire',answer:b},outcome});
   if(c.type==='categoryVerification'){
    if(a==='yes'&&b==='yes')data.categoryOverrides[category]=true;else delete data.categoryOverrides[category];
    return;

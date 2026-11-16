@@ -37,7 +37,34 @@
 </style></head><body><main class="wrap">
 <header class="brand"><small>JUST YOU. JUST US.</small><h1>AFTER DARK</h1><p>VOTRE ESPACE PRIVÉ À DEUX</p></header>
 <section class="panel" id="home"><div class="eyebrow">Bienvenue</div><div class="h">Un espace rien qu'à vous.</div><p class="muted">Explorez vos envies à votre rythme. Vos réponses restent privées jusqu'à votre décision de les révéler.</p><p class="notice">Une seule partie, plusieurs façons de jouer. Choisissez votre mode et changez-en quand vous le souhaitez.</p><button class="btn" onclick="openModeCenter()">Continuer / choisir le mode</button><div class="home-tools"><button class="chip" onclick="show('stats')">Statistiques</button><button class="chip" onclick="show('custom')">Mes cartes</button><button class="chip" onclick="show('settings')">Réglages</button></div><p class="muted small" id="savedStatus">Sauvegarde locale activée sur cet appareil.</p></section>
-<section class="panel hidden" id="modeCenter"><div class="eyebrow">Espace de jeu</div><div class="h">Changer de mode</div><p class="muted">Votre progression reste attachée à la même partie. Le changement de mode ne crée pas une nouvelle partie et ne remet pas les cartes à zéro.</p><div class="mode-choice primary-mode"><div class="mode-icon">⌁</div><div class="mode-copy"><b>À distance · deux téléphones</b><span>Mode principal prévu pour jouer chacun sur son appareil, avec synchronisation des réponses et de la progression.</span><em>Connexion du couple et synchronisation à activer</em></div><button class="btn" onclick="showRemoteNotice()">Configurer</button></div><div class="mode-choice"><div class="mode-icon">♧</div><div class="mode-copy"><b>Téléphone commun</b><span>Vous jouez ensemble sur un seul appareil, chacun répond à son tour.</span></div><button class="btn secondary" onclick="switchPlayMode('duo')">Utiliser</button></div><div class="mode-choice"><div class="mode-icon">♡</div><div class="mode-copy"><b>Solo</b><span>Une seule réponse par carte, avec la même progression et les mêmes succès.</span></div><button class="btn secondary" onclick="switchPlayMode('solo')">Utiliser</button></div><div id="remoteModeNotice" class="notice hidden">Le mode à distance n'est pas encore connecté au serveur. Cette version prépare l'espace de changement de mode, mais ne synchronise pas encore deux téléphones. N'activez pas ce mode pour une vraie partie à distance avant la connexion Supabase.</div><button class="btn ghost" onclick="goPlay()">Retour au jeu</button></section><section class="panel hidden" id="setup"><div class="eyebrow">Configuration du couple</div><div class="h">Vos prénoms ou surnoms</div><label class="muted" id="p1Label">Joueur</label><input class="field" id="p1" maxlength="24" placeholder="Ex. Alex"><label class="muted" id="p2Label">Deuxième joueur</label><input class="field" id="p2" maxlength="24" placeholder="Ex. Sam"><div class="notice" style="margin-top:12px">Vos noms sont conservés avec votre progression. Vous pourrez changer de mode depuis « Mode » sans créer une nouvelle partie.</div><button class="btn" onclick="saveSetup()">Enregistrer et jouer</button><button class="btn ghost" onclick="show('home')">Retour</button></section>
+<section class="panel hidden" id="modeCenter"><div class="eyebrow">Espace de jeu</div><div class="h">Changer de mode</div><p class="muted">Votre progression reste attachée à la même partie. Le changement de mode ne crée pas une nouvelle partie et ne remet pas les cartes à zéro.</p><div class="mode-choice primary-mode"><div class="mode-icon">⌁</div><div class="mode-copy"><b>À distance · deux téléphones</b><span>Mode principal prévu pour jouer chacun sur son appareil, avec synchronisation des réponses et de la progression.</span><em>Comptes et association du couple · synchronisation du jeu à venir</em></div><button class="btn" onclick="openRemoteSetup()">Configurer</button></div><div class="mode-choice"><div class="mode-icon">♧</div><div class="mode-copy"><b>Téléphone commun</b><span>Vous jouez ensemble sur un seul appareil, chacun répond à son tour.</span></div><button class="btn secondary" onclick="switchPlayMode('duo')">Utiliser</button></div><div class="mode-choice"><div class="mode-icon">♡</div><div class="mode-copy"><b>Solo</b><span>Une seule réponse par carte, avec la même progression et les mêmes succès.</span></div><button class="btn secondary" onclick="switchPlayMode('solo')">Utiliser</button></div><div id="remoteModeNotice" class="notice hidden">Le mode à distance n'est pas encore connecté au serveur. Cette version prépare l'espace de changement de mode, mais ne synchronise pas encore deux téléphones. N'activez pas ce mode pour une vraie partie à distance avant la connexion Supabase.</div><button class="btn ghost" onclick="goPlay()">Retour au jeu</button></section>
+<section class="panel hidden" id="remoteSetup">
+  <div class="eyebrow">Connexion sécurisée</div>
+  <div class="h">Jouer à distance</div>
+  <p class="muted">Connectez chacun votre compte, puis créez un couple ou rejoignez celui de votre partenaire avec son code d’invitation.</p>
+  <div class="notice">Cette étape active les comptes et l’association du couple. La synchronisation des cartes et des réponses entre deux téléphones sera ajoutée dans l’étape suivante : le jeu à distance n’est donc pas encore prêt à être utilisé.</div>
+  <label class="muted" for="remoteEmail">Adresse e-mail</label>
+  <input class="field" id="remoteEmail" type="email" autocomplete="email" placeholder="vous@exemple.com">
+  <label class="muted" for="remotePassword">Mot de passe</label>
+  <input class="field" id="remotePassword" type="password" autocomplete="current-password" placeholder="Au moins 6 caractères">
+  <div class="grid2" style="margin-top:12px">
+    <button class="btn" onclick="remoteSignUp()">Créer mon compte</button>
+    <button class="btn secondary" onclick="remoteSignIn()">Se connecter</button>
+  </div>
+  <div class="divider"></div>
+  <div class="h" style="font-size:20px">Associer vos deux comptes</div>
+  <label class="muted" for="remoteCoupleName">Nom du couple (pour créer)</label>
+  <input class="field" id="remoteCoupleName" maxlength="40" placeholder="Ex. Nous deux">
+  <button class="btn" onclick="remoteCreateCouple()">Créer un couple et obtenir un code</button>
+  <label class="muted" for="remoteInviteCode" style="margin-top:14px">Code reçu de votre partenaire</label>
+  <input class="field" id="remoteInviteCode" maxlength="40" autocapitalize="characters" placeholder="Code d’invitation">
+  <button class="btn secondary" onclick="remoteJoinCouple()">Rejoindre le couple</button>
+  <div id="remoteAccountStatus" class="notice" style="margin-top:14px" aria-live="polite">Vous n’êtes pas connecté.</div>
+  <div id="remoteInviteResult" class="notice hidden" style="margin-top:10px"></div>
+  <button class="btn ghost" onclick="remoteSignOut()">Se déconnecter</button>
+  <button class="btn ghost" onclick="openModeCenter()">Retour aux modes</button>
+</section>
+<section class="panel hidden" id="setup"><div class="eyebrow">Configuration du couple</div><div class="h">Vos prénoms ou surnoms</div><label class="muted" id="p1Label">Joueur</label><input class="field" id="p1" maxlength="24" placeholder="Ex. Alex"><label class="muted" id="p2Label">Deuxième joueur</label><input class="field" id="p2" maxlength="24" placeholder="Ex. Sam"><div class="notice" style="margin-top:12px">Vos noms sont conservés avec votre progression. Vous pourrez changer de mode depuis « Mode » sans créer une nouvelle partie.</div><button class="btn" onclick="saveSetup()">Enregistrer et jouer</button><button class="btn ghost" onclick="show('home')">Retour</button></section>
 <section class="panel hidden" id="game"><div class="row"><div><div class="eyebrow">Sélection privée</div><div class="h" id="turnName">À toi</div></div></div><div class="swipe-stage" id="swipeStage"><div class="swipe-feedback" id="swipeFeedback" aria-hidden="true"><span id="swipeFeedbackText">OUI</span><i></i></div><div class="card" id="gameCard"><div><div class="symbol">✦</div><span class="pill" id="cardType">DÉCOUVERTE</span> <span class="pill" id="level">SOFT</span><h3 id="cardTitle"></h3><p id="cardDesc"></p><div id="explainWrap" class="hidden"><button class="btn ghost" type="button" onclick="toggleExplanation()">C’est quoi ?</button><p id="cardExplanation" class="notice hidden"></p></div></div><div class="muted small">Fais glisser cette carte dans la direction de ta réponse.</div></div></div><div class="swipe-hint">← NON · ↑ WHY NOT · OUI → · ↓ PASSER</div></section>
 <section class="panel hidden" id="handoff"><div class="eyebrow">Changement de joueur</div><div class="h" id="handoffTitle">À l'autre partenaire</div><p class="muted">Passez le téléphone. L'écran ne révèle aucune réponse du joueur précédent.</p><button class="btn" onclick="nextPartner()">Je suis prêt(e)</button></section>
 <section class="panel hidden" id="results"><div class="eyebrow">Révélation commune</div><div class="h">Vos résultats ♡</div><p class="muted">Les cartes aimées par vous deux sont vos matchs. Les curiosités restent distinctes des envies acceptées. Chaque proposition est répondue par les deux partenaires avant de passer à la suite.</p><div class="grid2"><div class="stat"><b id="matchCount">0</b><span class="muted">Matchs</span></div><div class="stat"><b id="discussCount">0</b><span class="muted">↑ WHY NOT</span></div></div><div id="matches"></div><button class="btn" onclick="startNewRound()">Nouvelle partie</button><button class="btn secondary" onclick="show('stats')">Voir les statistiques</button><button class="btn ghost" onclick="show('home')">Accueil</button></section>
@@ -73,7 +100,7 @@ function allCards(){return [...baseCards.map(c=>({...c,type:c.type||c.kind||'dis
 function findCard(id){return allCards().find(c=>c.id===id)||mythicCatalog.find(c=>c.id===id)||null}
 function displayCard(c){if(!c)return null;if(c.kind==='mythic')return {...c,type:'mythic',level:'MYTHIQUE',cat:c.category,desc:c.desc,explanation:c.explanation||null};return c}
 function setMode(m){mode=m;document.getElementById('sameTab').classList.toggle('active',m==='same');document.getElementById('remoteTab').classList.toggle('active',m==='remote');document.getElementById('sameIntro').classList.toggle('hidden',m!=='same');document.getElementById('remoteIntro').classList.toggle('hidden',m!=='remote')}
-function show(id){['home','modeCenter','setup','game','handoff','results','stats','custom','settings','todo','success'].forEach(x=>{let e=document.getElementById(x);if(e)e.classList.toggle('hidden',x!==id)});const nav=document.getElementById('bottomNav');if(nav)nav.classList.toggle('hidden',['setup','handoff'].includes(id));const active=id==='todo'?'navTodo':id==='success'?'navSuccess':id==='modeCenter'?'navMode':'navPlay';['navPlay','navTodo','navSuccess','navMode'].forEach(x=>document.getElementById(x)?.classList.toggle('active',x===active));if(id==='stats')renderStats();if(id==='custom')renderCustom();if(id==='todo')renderTodo();if(id==='success')renderAchievements()}
+function show(id){['home','modeCenter','remoteSetup','setup','game','handoff','results','stats','custom','settings','todo','success'].forEach(x=>{let e=document.getElementById(x);if(e)e.classList.toggle('hidden',x!==id)});const nav=document.getElementById('bottomNav');if(nav)nav.classList.toggle('hidden',['setup','handoff'].includes(id));const active=id==='todo'?'navTodo':id==='success'?'navSuccess':id==='modeCenter'?'navMode':'navPlay';['navPlay','navTodo','navSuccess','navMode'].forEach(x=>document.getElementById(x)?.classList.toggle('active',x===active));if(id==='stats')renderStats();if(id==='custom')renderCustom();if(id==='todo')renderTodo();if(id==='success')renderAchievements()}
 function goPlay(){if(session.active){resume()}else{show('home')}}
 function openModeCenter(){const n=document.getElementById('remoteModeNotice');if(n)n.classList.add('hidden');show('modeCenter')}
 function showRemoteNotice(){const n=document.getElementById('remoteModeNotice');if(n)n.classList.remove('hidden')}
@@ -324,6 +351,89 @@ load();document.getElementById('p1').value=data.names[0]||'';document.getElement
 
 </script>
 <script>
+
+// --- Connexion Supabase et association du couple (étape 1) ---
+const AFTER_DARK_SUPABASE_URL='https://ejmidupqavmgyowwlwqn.supabase.co';
+const AFTER_DARK_SUPABASE_KEY='sb_publishable_O_muYBq3GMyTYw3UZZj9WQ_YcK0K1L';
+let afterDarkSupabase=null;
+let afterDarkUser=null;
+let afterDarkCoupleId=null;
+
+function remoteStatus(message,isError=false){
+ const el=document.getElementById('remoteAccountStatus');
+ if(el){el.textContent=message;el.style.borderColor=isError?'rgba(255,90,100,.55)':'';}
+}
+function remoteResult(message){
+ const el=document.getElementById('remoteInviteResult');
+ if(el){el.textContent=message;el.classList.remove('hidden');}
+}
+function initRemoteClient(){
+ if(!window.supabase?.createClient){remoteStatus('Le service de connexion ne se charge pas. Vérifiez votre connexion Internet puis rechargez la page.',true);return null;}
+ if(!afterDarkSupabase)afterDarkSupabase=window.supabase.createClient(AFTER_DARK_SUPABASE_URL,AFTER_DARK_SUPABASE_KEY,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+ return afterDarkSupabase;
+}
+function openRemoteSetup(){show('remoteSetup');remoteResult('');remoteRefreshStatus();}
+async function remoteRefreshStatus(){
+ const sb=initRemoteClient();if(!sb)return;
+ try{
+  const {data:{user},error}=await sb.auth.getUser();
+  if(error)throw error;
+  afterDarkUser=user||null;afterDarkCoupleId=null;
+  if(!user){remoteStatus('Vous n’êtes pas connecté. Créez un compte ou connectez-vous.');return;}
+  const {data:member,error:memberError}=await sb.from('couple_members').select('couple_id').eq('user_id',user.id).maybeSingle();
+  if(memberError)throw memberError;
+  afterDarkCoupleId=member?.couple_id||null;
+  remoteStatus(afterDarkCoupleId
+   ? 'Connecté : '+user.email+' · couple associé. Le partage de la partie sera activé dans la prochaine étape.'
+   : 'Connecté : '+user.email+' · aucun couple associé pour le moment.');
+ }catch(e){remoteStatus('Erreur : '+(e.message||String(e)),true);}
+}
+async function remoteSignUp(){
+ const sb=initRemoteClient();if(!sb)return;
+ const email=document.getElementById('remoteEmail').value.trim(),password=document.getElementById('remotePassword').value;
+ if(!email||password.length<6){remoteStatus('Saisissez un e-mail valide et un mot de passe d’au moins 6 caractères.',true);return;}
+ try{
+  const {data,error}=await sb.auth.signUp({email,password});
+  if(error)throw error;
+  if(data.session){await remoteRefreshStatus();remoteResult('Compte créé. Vous êtes connecté.');}
+  else remoteStatus('Demande de création envoyée. Si la confirmation e-mail est activée, ouvrez le message reçu avant de vous connecter. Évitez de redemander plusieurs e-mails à la suite.');
+ }catch(e){remoteStatus('Inscription impossible : '+(e.message||String(e)),true);}
+}
+async function remoteSignIn(){
+ const sb=initRemoteClient();if(!sb)return;
+ const email=document.getElementById('remoteEmail').value.trim(),password=document.getElementById('remotePassword').value;
+ if(!email||!password){remoteStatus('Saisissez votre e-mail et votre mot de passe.',true);return;}
+ try{const {error}=await sb.auth.signInWithPassword({email,password});if(error)throw error;await remoteRefreshStatus();remoteResult('Connexion réussie.');}
+ catch(e){remoteStatus('Connexion impossible : '+(e.message||String(e)),true);}
+}
+async function remoteCreateCouple(){
+ const sb=initRemoteClient();if(!sb)return;
+ try{
+  const {data:{user},error:userError}=await sb.auth.getUser();if(userError)throw userError;if(!user)throw new Error('Connectez-vous avant de créer un couple.');
+  const name=document.getElementById('remoteCoupleName').value.trim()||'Notre couple';
+  const {data,error}=await sb.rpc('create_couple',{p_name:name});if(error)throw error;
+  afterDarkCoupleId=data;
+  const {data:invite,error:inviteError}=await sb.rpc('create_invite');if(inviteError)throw inviteError;
+  await remoteRefreshStatus();
+  remoteResult('Couple créé. Code d’invitation à transmettre à votre partenaire : '+invite+'. Gardez-le privé.');
+ }catch(e){remoteStatus('Création impossible : '+(e.message||String(e)),true);}
+}
+async function remoteJoinCouple(){
+ const sb=initRemoteClient();if(!sb)return;
+ try{
+  const {data:{user},error:userError}=await sb.auth.getUser();if(userError)throw userError;if(!user)throw new Error('Connectez-vous avant de rejoindre un couple.');
+  const code=document.getElementById('remoteInviteCode').value.trim().replace(/\\s+/g,'');
+  if(!code)throw new Error('Saisissez le code d’invitation.');
+  const {data,error}=await sb.rpc('join_couple',{p_code:code});if(error)throw error;
+  afterDarkCoupleId=data;await remoteRefreshStatus();remoteResult('Vous avez rejoint le couple. L’association est enregistrée.');
+ }catch(e){remoteStatus('Impossible de rejoindre le couple : '+(e.message||String(e)),true);}
+}
+async function remoteSignOut(){
+ const sb=initRemoteClient();if(!sb)return;
+ try{const {error}=await sb.auth.signOut();if(error)throw error;afterDarkUser=null;afterDarkCoupleId=null;remoteStatus('Vous êtes déconnecté.');remoteResult('');}
+ catch(e){remoteStatus('Déconnexion impossible : '+(e.message||String(e)),true);}
+}
+
 // Enregistrement PWA : nécessite une origine HTTPS (ou localhost).
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {
   window.addEventListener('load', () => navigator.serviceWorker.register('./sw.js').catch(err => console.warn('AFTER DARK offline:', err)));

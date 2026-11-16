@@ -1,7 +1,20 @@
-AFTER DARK V7 — état réel
+ÉTAT DES FONCTIONNALITÉS — VERSION ÉTAPE 1
 
-Fonctionnel dans cette livraison : application locale, solo, téléphone commun, swipe, pages À faire et Succès, navigation Mode, catalogues intégrés.
+Inclus :
+- Catalogue existant intégré : 600 cartes + 25 Mythiques.
+- Interface et fonctionnement local conservés.
+- Solo et téléphone commun conservés.
+- Connexion/inscription Supabase par e-mail et mot de passe.
+- Création d'un couple via RPC create_couple.
+- Génération d'un code via create_invite.
+- Rejoindre un couple via join_couple.
+- Vérification du compte et du couple associé.
+- PWA, manifest, icônes et service worker.
 
-Non fonctionnel / pas encore livré : jeu distant réel à deux téléphones, création de comptes, invitation du partenaire, synchronisation en direct, reprise automatique d'une partie sur un autre appareil.
+Pas encore inclus :
+- Synchronisation de la partie entre deux appareils.
+- Envoi privé des réponses par joueur et révélation après les deux réponses.
+- Synchronisation temps réel et reprise de partie distante.
+- Migration automatique de la progression locale vers le cloud.
 
-Ne présentez pas le mode distant comme opérationnel. La connexion Supabase doit faire l'objet d'un développement et de tests dédiés.
+La version ne doit donc pas être présentée comme un mode de jeu à distance terminé.

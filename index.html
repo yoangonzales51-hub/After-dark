@@ -873,8 +873,8 @@ let afterDarkLatestRoundStatus=null;
 async function remoteRequestCategoryReopen(category){
  try{
   if(!afterDarkCoupleId)throw new Error('Connectez-vous et associez votre partenaire pour rouvrir une catégorie à distance.');
-  if(!remoteGame.roundId)await remoteStartOrResume();
-  if(!remoteGame.roundId)throw new Error('Impossible de retrouver la partie distante.');
+  if(!remoteGame.roundId||remoteGame.state?.status==='completed')await remoteStartOrResume();
+  if(!remoteGame.roundId||remoteGame.state?.status==='completed')throw new Error('Impossible de retrouver une partie distante active.');
   const cards=allCards().filter(c=>(c.cat||c.category||'Non classée')===category&&(c.type==='independent'||c.type==='discovery'))
    .sort((a,b)=>(a.themeId||'').localeCompare(b.themeId||'')||(a.alternativeIndex??0)-(b.alternativeIndex??0))
    .map(c=>({card_id:c.id,card_type:c.type,theme_id:c.themeId||null,alternative_index:c.alternativeIndex??0,linked_realization_id:c.linkedRealizationId||null,category_id:category}));

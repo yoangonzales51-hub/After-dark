@@ -142,7 +142,7 @@ function currentCard(){
  if(session.flow==='proposal')return displayCard(findCard(session.proposalId));
  while(session.queueIndex<session.queue.length){
   const item=session.queue[session.queueIndex];
-  if(item.kind==='independent')return displayCard(findCard(item.cardId));
+ if(item.kind==='independent'||item.kind==='reopened')return displayCard(findCard(item.cardId));
   const st=session.themeProgress[item.themeId]||{phase:'discovery',altIndex:0};session.themeProgress[item.themeId]=st;
   const ds=allCards().filter(c=>c.type==='discovery'&&c.themeId===item.themeId).sort((a,b)=>(a.alternativeIndex??0)-(b.alternativeIndex??0));
   if(st.phase==='verification'){
@@ -204,7 +204,23 @@ function rememberRefusedCard(c){
 }
 function processRoundPair(c){
  const a=session.answers[0][c.id],b=session.playerMode==='solo'?a:session.answers[1][c.id];
- recordAttempt(c,a,b);
+  recordAttempt(c,a,b);
+ const currentItem=session.queue[session.queueIndex];
+ if(currentItem&&currentItem.kind==='reopened'){
+  if(isYesMatch(a,b)){
+   recordAccepted(c);
+   const realization=findCard(c.linkedRealizationId);
+   if(realization)addTodo(realization,'unlocked',c.id);
+   if(c.themeId)markAchievementVisible(c.themeId);
+   data.refusedCards=data.refusedCards.filter(x=>x.cardId!==c.id);
+  }else if(isMaybeMatch(a,b)){
+   recordCuriosity(c);
+   data.refusedCards=data.refusedCards.filter(x=>x.cardId!==c.id);
+  }
+  session.queueIndex++;
+  save();
+  return;
+ }
  if(a==='pass'||b==='pass'){
   if(c.type==='verification'){completeTheme(c.themeId);return}
   if(c.type==='discovery'){const st=session.themeProgress[c.themeId]||{phase:'discovery',altIndex:0};st.altIndex++;session.themeProgress[c.themeId]=st;const remaining=allCards().some(x=>x.type==='discovery'&&x.themeId===c.themeId&&(x.alternativeIndex??0)>=st.altIndex);if(!remaining)completeTheme(c.themeId);return}
@@ -218,6 +234,15 @@ function processRoundPair(c){
   const themeId=c.themeId,st=session.themeProgress[themeId]||{phase:'verification',altIndex:0};
   if(a==='yes'&&b==='yes'){
    const refused=data.refusedCards.filter(x=>x.themeId===themeId).map(x=>x.cardId);
+   const reopenedItems=refused
+    .filter(id=>allCards().some(card=>card.id===id))
+    .filter(id=>!session.queue.some(item=>item.kind==='reopened'&&item.cardId===id))
+    .map(id=>({kind:'reopened',cardId:id}));
+   const remainingQueue=session.queue.slice(session.queueIndex+1);
+   session.queue=[
+    ...session.queue.slice(0,session.queueIndex+1),
+    ...shuffle([...remainingQueue,...reopenedItems])
+   ];
    session.reopenedCardIds=session.reopenedCardIds||[];
    refused.forEach(id=>{if(!session.reopenedCardIds.includes(id))session.reopenedCardIds.push(id)});
    st.phase='discovery';st.altIndex++;

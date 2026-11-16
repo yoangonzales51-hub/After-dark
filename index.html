@@ -311,6 +311,7 @@ function renderHistory(){
   const curious=Array.isArray(entry.curious)?entry.curious.length:0;
   return '<div class="item"><b>Partie '+(entries.length-index)+'</b><p class="muted">'+dateLabel+'</p><div class="stats-row"><span>✓ '+accepted+' envie(s) acceptée(s)</span><span>◇ '+curious+' curiosité(s)</span></div></div>';
  }).join('');
+  }
 function renderStats(){document.getElementById('statRounds').textContent=data.rounds||0;document.getElementById('statMatches').textContent=data.matches||0;document.getElementById('statsText').textContent=`${data.rounds||0} partie(s) terminée(s).`}
 function addCustom(){let level=document.getElementById('customLevel').value,category=document.getElementById('customCat').value.trim()||'Personnalisé',desc=document.getElementById('customDesc').value.trim();if(desc.length<8)return alert('Ajoute une carte plus détaillée.');data.custom.push({id:'CUSTOM-'+Date.now(),cat:category,level:level.replace('_',' '),tier:level,title:'Carte personnelle '+(data.custom.length+1),desc,type:'independent',kind:'independent'});save();renderCustom();document.getElementById('customDesc').value=''}
 function renderCustom(){let el=document.getElementById('customList');el.innerHTML=data.custom.length?data.custom.map((c,i)=>`<div class="item">${escapeHtml(c.desc)} <button class="chip" onclick="deleteCustom(${i})">Supprimer</button></div>`).join(''):'Aucune carte personnelle.'}

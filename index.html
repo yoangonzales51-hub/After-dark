@@ -872,6 +872,39 @@ let remoteGame={roundId:null,state:null,selectedCardId:null,channel:null,todoCha
 let afterDarkLatestRoundId=null;
 let afterDarkLatestRoundStatus=null;
 
+
+async function remoteSaveTodo(todoOrId){
+ if(!afterDarkSupabase||!afterDarkCoupleId)return;
+ const t=typeof todoOrId==='string'?data.todo.find(x=>x.id===todoOrId):todoOrId;
+ if(!t)return;
+ try{
+  const {error}=await afterDarkSupabase.rpc('sync_remote_todo',{p_card_id:t.id,p_status:t.status,p_done:!!t.done,p_source:t.source||null});
+  if(error)console.warn('AFTER DARK todo sync',error.message);
+ }catch(e){console.warn('AFTER DARK todo sync',e)}
+}
+function remotePersistTodo(id){const t=data.todo.find(x=>x.id===id);if(t)remoteSaveTodo(t)}
+async function remoteRefreshTodoStates(){
+ if(!afterDarkSupabase||!afterDarkCoupleId)return;
+ try{
+  const {data:rows,error}=await afterDarkSupabase.rpc('get_remote_todos');if(error)throw error;
+  (rows||[]).forEach(row=>{
+   let t=data.todo.find(x=>x.id===row.card_id);
+   if(!t){t={id:row.card_id,status:row.status,source:row.source||null,done:!!row.done,doneVotes:[false,false]};data.todo.push(t)}
+   else{t.status=row.status;t.source=row.source||t.source||null;t.done=!!(t.done||row.done);if(row.completed_at)t.completedAt=row.completed_at}
+  });
+  save();if(!document.getElementById('todo')?.classList.contains('hidden'))renderTodo();
+ }catch(e){console.warn('AFTER DARK todo refresh',e)}
+}
+async function remoteStartTodoProposal(cardId){
+ try{
+  if(!afterDarkCoupleId)throw new Error('Connexion distante requise.');
+  if(!remoteGame.roundId||remoteGame.state?.status==='completed')await remoteStartOrResume();
+  const c=findCard(cardId);if(!c)throw new Error('Réalisation introuvable.');
+  const {data:proposalId,error}=await afterDarkSupabase.rpc('append_remote_todo_proposal',{p_round_id:remoteGame.roundId,p_card_id:cardId,p_category:c.cat||c.category||'Non classée'});
+  if(error)throw error;
+  await remoteRefreshRoundState();remoteGame.selectedCardId=proposalId;remoteRenderRound();show('remoteGame');
+ }catch(e){alert('Impossible de proposer cette réalisation : '+(e.message||String(e)))}
+}
 async function remoteRequestCategoryReopen(category){
  try{
   if(!afterDarkCoupleId)throw new Error('Connectez-vous et associez votre partenaire pour rouvrir une catégorie à distance.');

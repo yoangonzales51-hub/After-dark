@@ -951,7 +951,7 @@ async function remoteSignIn(){
  const sb=initRemoteClient();if(!sb)return;
  const email=document.getElementById('remoteEmail').value.trim(),password=document.getElementById('remotePassword').value;
  if(!email||!password){remoteStatus('Saisissez votre e-mail et votre mot de passe.',true);return;}
- try{const {error}=await sb.auth.signInWithPassword({email,password});if(error)throw error;await remoteRefreshStatus();await remoteSaveInitialProfile();remoteResult('Connexion réussie.');if(afterDarkCoupleId){show('home');}else remoteStatus('Connecté. Créez un couple ou rejoignez celui de votre partenaire pour terminer la configuration.');}
+ try{const {error}=await sb.auth.signInWithPassword({email,password});if(error)throw error;await remoteRefreshStatus();await remoteSaveInitialProfile();remoteResult('Connexion réussie.');if(afterDarkCoupleId){show(afterDarkLatestRoundStatus==='playing'?'remoteGame':'home');}else remoteStatus('Connecté. Créez un couple ou rejoignez celui de votre partenaire pour terminer la configuration.');}
  catch(e){remoteStatus('Connexion impossible : '+(e.message||String(e)),true);}
 }
 async function remoteCreateCouple(){

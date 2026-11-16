@@ -566,6 +566,7 @@ function finishGame(){
  out+='<button class="btn secondary" onclick="show(\'todo\')">Voir Mes envies</button>';document.getElementById('matches').innerHTML=out;show('results');
 }
 function startProposal(id){
+ if(afterDarkCoupleId){remoteStartTodoProposal(id);return}
  const c=findCard(id);if(!c)return;
  session={active:true,queue:[],queueIndex:0,partner:0,playerMode,answers:[{},{}],seen:[],themeProgress:{},needsHandoff:false,flow:'proposal',proposalId:id,summary:{accepted:[],curious:[]}};
  renderGame();show('game');
@@ -595,7 +596,7 @@ function renderTodo(){
   return `<div class="item"><span class="pill">${isUnlocked?(c.type==='mythic'?'CARTE MYTHIQUE DÉBLOQUÉE':'RÉALISATION DÉBLOQUÉE'):isCurious?'CURIOSITÉ':'ENVIE ACCEPTÉE'}</span><div>${escapeHtml(c.desc||'')}</div>${controls}</div>`;
  }).join('')).join('');
 }
-function finishTodo(id){const t=data.todo.find(x=>x.id===id);if(!t||t.done)return;t.done=true;t.completedAt=new Date().toISOString();checkAchievementUnlocks();save();renderTodo();}
+function finishTodo(id){const t=data.todo.find(x=>x.id===id);if(!t||t.done)return;t.done=true;t.completedAt=new Date().toISOString();checkAchievementUnlocks();save();renderTodo();if(afterDarkCoupleId)remoteSaveTodo(t);}
 function completedRealizations(){return data.todo.filter(t=>t.done&&findCard(t.id)?.type==='realization')}
 function checkAchievementUnlocks(){
  const done=completedRealizations();
@@ -816,6 +817,7 @@ async function remoteRefreshStatus(){
    ? 'Connecté : '+user.email+' · couple associé. Vous pouvez lancer ou reprendre votre partie à distance.'
    : 'Connecté : '+user.email+' · aucun couple associé pour le moment.');
   await remoteSyncPastRounds();
+  await remoteRefreshTodoStates();
   await remoteRefreshLatestRound();
  }catch(e){remoteStatus('Erreur : '+(e.message||String(e)),true);}
 }
@@ -861,12 +863,12 @@ async function remoteJoinCouple(){
 }
 async function remoteSignOut(){
  const sb=initRemoteClient();if(!sb)return;
- try{if(remoteGame.channel){await sb.removeChannel(remoteGame.channel);remoteGame.channel=null}const {error}=await sb.auth.signOut();if(error)throw error;afterDarkUser=null;afterDarkCoupleId=null;remoteGame.roundId=null;remoteGame.state=null;afterDarkLatestRoundId=null;remoteStatus('Vous êtes déconnecté.');remoteResult('');}
+ try{if(remoteGame.channel){await sb.removeChannel(remoteGame.channel);remoteGame.channel=null}if(remoteGame.todoChannel){await sb.removeChannel(remoteGame.todoChannel);remoteGame.todoChannel=null}const {error}=await sb.auth.signOut();if(error)throw error;afterDarkUser=null;afterDarkCoupleId=null;remoteGame.roundId=null;remoteGame.state=null;afterDarkLatestRoundId=null;remoteStatus('Vous êtes déconnecté.');remoteResult('');}
  catch(e){remoteStatus('Déconnexion impossible : '+(e.message||String(e)),true);}
 }
 
 
-let remoteGame={roundId:null,state:null,selectedCardId:null,channel:null,busy:false,lastSyncedRound:null};
+let remoteGame={roundId:null,state:null,selectedCardId:null,channel:null,todoChannel:null,busy:false,lastSyncedRound:null};
 let afterDarkLatestRoundId=null;
 let afterDarkLatestRoundStatus=null;
 
@@ -900,6 +902,10 @@ function remoteSubscribeRound(){
  const id=remoteGame.roundId;
  remoteGame.channel=afterDarkSupabase.channel('after-dark-round-'+id)
   .on('postgres_changes',{event:'UPDATE',schema:'public',table:'remote_rounds',filter:'id=eq.'+id},()=>remoteRefreshRoundState())
+  .subscribe();
+ if(remoteGame.todoChannel){afterDarkSupabase.removeChannel(remoteGame.todoChannel);remoteGame.todoChannel=null}
+ remoteGame.todoChannel=afterDarkSupabase.channel('after-dark-todos-'+afterDarkCoupleId)
+  .on('postgres_changes',{event:'*',schema:'public',table:'remote_todo_states',filter:'couple_id=eq.'+afterDarkCoupleId},()=>remoteRefreshTodoStates())
   .subscribe();
 }
 async function remoteStartOrResume(){

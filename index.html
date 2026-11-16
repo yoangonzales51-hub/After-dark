@@ -131,10 +131,29 @@ function selectedCards(){return allCards().filter(c=>(tier==='Toutes'||c.tier===
 function buildQueue(){
  const cards=selectedCards();const groups=new Map();
  for(const c of cards.filter(x=>x.type==='discovery'&&x.themeId)){
-  if(!groups.has(c.themeId))groups.set(c.themeId,[]);groups.get(c.themeId).push(c);
+  if(!groups.has(c.themeId))groups.set(c.themeId,[]);
+  groups.get(c.themeId).push(c);
  }
  const entries=[...groups.keys()].map(themeId=>({kind:'theme',themeId}));
- for(const c of cards.filter(x=>x.type==='independent'))entries.push({kind:'independent',cardId:c.id});
+ for(const c of cards.filter(x=>x.type==='independent')){
+  entries.push({kind:'independent',cardId:c.id});
+ }
+ return shuffle(entries);
+}
+function buildCategoryQueue(category){
+ const cards=allCards().filter(c=>(c.cat||c.category||'Non classée')===category);
+ const groups=new Set();
+ const entries=[];
+ for(const c of cards){
+  if(c.type==='discovery'&&c.themeId){
+   if(!groups.has(c.themeId)){
+    groups.add(c.themeId);
+    entries.push({kind:'theme',themeId:c.themeId});
+   }
+  }else if(c.type==='independent'){
+   entries.push({kind:'independent',cardId:c.id});
+  }
+ }
  return shuffle(entries);
 }
 function startNewRound(){
@@ -193,6 +212,17 @@ function currentCard(){
   if(c)return displayCard(c);
   session.queueIndex++;
   session.themeProgress[item.themeId]={...st,phase:'done'};
+ }
+ if(session.flow==='round'){
+  session.waitingForContent=true;
+  return {
+   id:'WAITING-CARD',
+   type:'waiting',
+   level:'AFTER DARK',
+   title:'Les prochaines cartes arrivent bientôt…',
+   desc:'De nouvelles cartes seront disponibles dès qu’une catégorie sera rouverte ou que le créateur ajoutera une carte.',
+   explanation:null
+  };
  }
  return null;
 }
@@ -308,10 +338,17 @@ function finishCategoryVerification(c){
  }else{
   alert('La catégorie reste fermée. Deux OUI étaient nécessaires.');
  }
- if(returnSession){
+  const reopenedCategory=session.categoryToReopen;
+  if(returnSession){
   session=returnSession;
   playerMode=session.playerMode||'duo';
   session.needsHandoff=false;
+  if(a==='yes'&&b==='yes'&&session.waitingForContent){
+   const newEntries=buildCategoryQueue(session.categoryToReopen);
+   session.queue.push(...newEntries);
+   session.waitingForContent=false;
+   session.themeProgress=session.themeProgress||{};
+  }
   save();
   renderGame();
   show('game');
@@ -429,7 +466,7 @@ function processRoundPair(c){
 }
 function answer(v){
  const c=currentCard();
- if(!c)return;
+ if(!c||c.type==='waiting')return;
  session.answers[session.partner][c.id]=v;
  session.seen.push(c.id);
  if(session.flow==='categoryVerification'){
@@ -451,7 +488,13 @@ function answer(v){
   }
   processRoundPair(c);
   session.partner=0;
-  if(session.queueIndex>=session.queue.length||!currentCard()){
+   const next=currentCard();
+ if(!next||next.type==='waiting'){
+  save();
+  renderGame();
+  show('game');
+  return;
+ }
    finishGame();
    return;
   }
@@ -473,7 +516,13 @@ function answer(v){
  }
  processRoundPair(c);
  session.partner=0;
- if(session.queueIndex>=session.queue.length||!currentCard()){
+  const next=currentCard();
+ if(!next||next.type==='waiting'){
+  save();
+  renderGame();
+  show('game');
+  return;
+ }
   finishGame();
   return;
  }
@@ -630,7 +679,35 @@ function renderHistory(){
  el.innerHTML=html;
 }
 function renderStats(){document.getElementById('statRounds').textContent=data.rounds||0;document.getElementById('statMatches').textContent=data.matches||0;document.getElementById('statsText').textContent=`${data.rounds||0} partie(s) terminée(s).`}
-function addCustom(){let level=document.getElementById('customLevel').value,category=document.getElementById('customCat').value.trim()||'Personnalisé',desc=document.getElementById('customDesc').value.trim();if(desc.length<8)return alert('Ajoute une carte plus détaillée.');data.custom.push({id:'CUSTOM-'+Date.now(),cat:category,level:level.replace('_',' '),tier:level,title:'Carte personnelle '+(data.custom.length+1),desc,type:'independent',kind:'independent'});save();renderCustom();document.getElementById('customDesc').value=''}
+function addCustom(){
+ let level=document.getElementById('customLevel').value;
+ let category=document.getElementById('customCat').value.trim()||'Personnalisé';
+ let desc=document.getElementById('customDesc').value.trim();
+ if(desc.length<8)return alert('Ajoute une carte plus détaillée.');
+ const newCard={
+  id:'CUSTOM-'+Date.now(),
+  cat:category,
+  level:level.replace('_',' '),
+  tier:level,
+  title:'Carte personnelle '+(data.custom.length+1),
+  desc,
+  type:'independent',
+  kind:'independent'
+ };
+ data.custom.push(newCard);
+ if(session.active&&session.flow==='round'&&session.waitingForContent){
+  session.queue.push({kind:'independent',cardId:newCard.id});
+  session.waitingForContent=false;
+  session.needsHandoff=false;
+ }
+ save();
+ renderCustom();
+ document.getElementById('customDesc').value='';
+ if(session.active&&session.flow==='round'&&!session.waitingForContent){
+  renderGame();
+  show('game');
+ }
+}
 function renderCustom(){let el=document.getElementById('customList');el.innerHTML=data.custom.length?data.custom.map((c,i)=>`<div class="item">${escapeHtml(c.desc)} <button class="chip" onclick="deleteCustom(${i})">Supprimer</button></div>`).join(''):'Aucune carte personnelle.'}
 function deleteCustom(i){if(confirm('Supprimer cette carte ?')){data.custom.splice(i,1);save();renderCustom()}}
 function exportData(){let blob=new Blob([JSON.stringify({data,session},null,2)],{type:'application/json'}),a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='after-dark-sauvegarde.json';a.click();URL.revokeObjectURL(a.href)}

@@ -925,6 +925,7 @@ async function remoteRefreshRoundState(){
 }
 function remoteSyncPairedResults(state){
  if(!state||!Array.isArray(state.cards))return;
+ session.summary=session.summary||{accepted:[],curious:[]};
  const previousMode=session.playerMode;session.playerMode='duo';
  state.cards.filter(x=>x.completed&&!x.cancelled&&x.my_answer&&x.partner_answer).forEach(item=>{
   const c=findCard(item.card_id);if(!c)return;

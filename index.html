@@ -813,6 +813,8 @@ function openRemoteSetup(){show('remoteSetup');remoteResult('');remoteRefreshSta
 // Profils, photos, présence et gestion de l'association du couple.
 let afterDarkPartnerId=null,afterDarkPartnerName='Partenaire',afterDarkProfile={display_name:'',avatar_id:'01',avatar_url:''};
 const AFTER_DARK_AVATARS=Array.from({length:25},(_,i)=>String(i+1).padStart(2,'0'));
+const AFTER_DARK_AVATAR_GLYPHS=['👩🏻','👨🏽','🧑🏿','👩🏾','👨🏻','👩🏿','👨🏼','🧑🏻','👩🏼','👨🏿','👩🏽','🧑🏾','👨🏾','👩🏻‍🦱','👨🏽‍🦱','🧑🏼‍🦰','👩🏿‍🦱','👨🏻‍🦰','🧑🏽‍🦳','👩🏼‍🦰','👨🏿‍🦲','👩🏽‍🦳','🧑🏻‍🦲','👨🏼‍🦰','👩🏾‍🦱'];
+function afterDarkAvatarGlyph(id){const n=Math.max(1,Math.min(25,parseInt(id,10)||1));return AFTER_DARK_AVATAR_GLYPHS[n-1]}
 let afterDarkSelectedAvatar='01',afterDarkInitialAvatar='01';
 function renderAvatarGallery(id,selected,scope){const el=document.getElementById(id);if(!el)return;el.innerHTML=AFTER_DARK_AVATARS.map((avatar,i)=>'<button type="button" class="avatar-choice '+(avatar===selected?'selected':'')+'" aria-pressed="'+(avatar===selected)+'" onclick="selectAfterDarkAvatar(\''+scope+'\',\''+avatar+'\')"><span class="avatar-art" aria-hidden="true">♙</span><small>Style '+(i+1)+'</small></button>').join('')}
 function selectAfterDarkAvatar(scope,id){if(!AFTER_DARK_AVATARS.includes(id))return;if(scope==='initial'){afterDarkInitialAvatar=id;renderAvatarGallery('initialAvatarGallery',id,'initial')}else{afterDarkSelectedAvatar=id;renderAvatarGallery('settingsAvatarGallery',id,'settings')}}
@@ -822,12 +824,12 @@ function remoteRenderProfileBar(){
  bar.classList.toggle('hidden',!afterDarkUser||!afterDarkCoupleId);
  document.getElementById('myProfileNameMini').textContent=afterDarkProfile.display_name||'Vous';
  document.getElementById('partnerProfileNameMini').textContent=afterDarkPartnerName||'Partenaire';
- profileImage('myProfileAvatarMini','myProfileFallback',afterDarkProfile.avatar_url);
- profileImage('partnerProfileAvatarMini','partnerProfileFallback',afterDarkPartnerAvatar||'');
+ profileImage('myProfileAvatarMini','myProfileFallback','');document.getElementById('myProfileFallback').textContent=afterDarkAvatarGlyph(afterDarkProfile.avatar_id);
+ profileImage('partnerProfileAvatarMini','partnerProfileFallback','');document.getElementById('partnerProfileFallback').textContent=afterDarkAvatarGlyph(afterDarkPartnerAvatarId);
  document.getElementById('myPresenceDot').classList.toggle('online',!!afterDarkUser);
  document.getElementById('partnerPresenceDot').classList.toggle('online',!!remoteGame.partnerOnline);
 }
-let afterDarkPartnerAvatar='';
+let afterDarkPartnerAvatar='',afterDarkPartnerAvatarId='01';
 async function remoteRefreshProfile(){
  if(!afterDarkSupabase||!afterDarkUser)return;
  try{
@@ -836,11 +838,11 @@ async function remoteRefreshProfile(){
   if(afterDarkCoupleId){
    const {data:members,error:membersError}=await afterDarkSupabase.from('couple_members').select('user_id,display_name').eq('couple_id',afterDarkCoupleId);if(membersError)throw membersError;
    const partner=(members||[]).find(x=>x.user_id!==afterDarkUser.id);afterDarkPartnerId=partner?.user_id||null;afterDarkPartnerName=partner?.display_name||'Partenaire';
-   afterDarkPartnerAvatar='';
-   if(afterDarkPartnerId){const {data:other,error:otherError}=await afterDarkSupabase.from('profiles').select('avatar_id,display_name').eq('id',afterDarkPartnerId).maybeSingle();if(!otherError&&other){afterDarkPartnerAvatar='';afterDarkPartnerName=other.display_name||afterDarkPartnerName}}
+   afterDarkPartnerAvatar='';afterDarkPartnerAvatarId='01';
+   if(afterDarkPartnerId){const {data:other,error:otherError}=await afterDarkSupabase.from('profiles').select('avatar_id,display_name').eq('id',afterDarkPartnerId).maybeSingle();if(!otherError&&other){afterDarkPartnerAvatar='';afterDarkPartnerAvatarId=AFTER_DARK_AVATARS.includes(other.avatar_id)?other.avatar_id:'01';afterDarkPartnerName=other.display_name||afterDarkPartnerName}}
    const {data:couple}=await afterDarkSupabase.from('couples').select('name').eq('id',afterDarkCoupleId).maybeSingle();
    const info=document.getElementById('accountCoupleInfo');if(info)info.textContent=(couple?.name||'Votre couple')+' · '+(members||[]).length+' membre(s) associé(s).';
-  }else{afterDarkPartnerId=null;afterDarkPartnerAvatar='';afterDarkPartnerName='Partenaire';const info=document.getElementById('accountCoupleInfo');if(info)info.textContent='Aucun couple associé.'}
+  }else{afterDarkPartnerId=null;afterDarkPartnerAvatar='';afterDarkPartnerAvatarId='01';afterDarkPartnerName='Partenaire';const info=document.getElementById('accountCoupleInfo');if(info)info.textContent='Aucun couple associé.'}
   const nameInput=document.getElementById('profileDisplayName');if(nameInput&&document.activeElement!==nameInput)nameInput.value=afterDarkProfile.display_name;
   renderAvatarGallery('settingsAvatarGallery',afterDarkSelectedAvatar,'settings');renderAvatarGallery('initialAvatarGallery',afterDarkInitialAvatar,'initial');
   const status=document.getElementById('accountStatus');if(status)status.textContent=afterDarkUser.email||'Compte connecté';

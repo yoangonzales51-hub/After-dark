@@ -146,7 +146,7 @@ function currentCard(){
   const st=session.themeProgress[item.themeId]||{phase:'discovery',altIndex:0};session.themeProgress[item.themeId]=st;
   const ds=allCards().filter(c=>c.type==='discovery'&&c.themeId===item.themeId).sort((a,b)=>(a.alternativeIndex??0)-(b.alternativeIndex??0));
   if(st.phase==='verification'){
-   const first=ds[0];return {id:'VERIFY-'+item.themeId,type:'verification',kind:'verification',themeId:item.themeId,tier:first?.tier||'SOFT',level:first?.level||'SOFT',cat:first?.cat||'Vérification',title:'Vérification du thème',desc:first?.verificationPrompt||'Souhaitez-vous explorer au moins une proposition autour de ce thème ?',explanation:null};
+  const first=ds[0];return {id:'VERIFY-'+item.themeId,type:'verification',kind:'verification',themeId:item.themeId,tier:first?.tier||'SOFT',level:first?.level||'SOFT',cat:first?.cat||'Vérification',title:'Réouverture des cartes refusées',desc:'Souhaitez-vous réintégrer les cartes refusées de ce thème dans le paquet ? Seuls deux OUI permettent cette réouverture.',explanation:null};
   }
   const c=ds[st.altIndex];if(c)return displayCard(c);
   session.queueIndex++;session.themeProgress[item.themeId]={...st,phase:'done'};
@@ -195,6 +195,13 @@ function markAchievementVisible(themeId){
  save();
 }
 function completeTheme(themeId){session.themeProgress[themeId]={...(session.themeProgress[themeId]||{}),phase:'done'};session.queueIndex++}
+function rememberRefusedCard(c){
+ if(!c||!c.themeId)return;
+ if(!data.refusedCards.some(x=>x.cardId===c.id)){
+  data.refusedCards.push({cardId:c.id,themeId:c.themeId,refusedAt:new Date().toISOString()});
+ }
+ save();
+}
 function processRoundPair(c){
  const a=session.answers[0][c.id],b=session.playerMode==='solo'?a:session.answers[1][c.id];
  recordAttempt(c,a,b);
@@ -209,11 +216,20 @@ function processRoundPair(c){
  }
  if(c.type==='verification'){
   const themeId=c.themeId,st=session.themeProgress[themeId]||{phase:'verification',altIndex:0};
-  if(a==='no'||b==='no'){
+  if(a==='yes'&&b==='yes'){
+   const refused=data.refusedCards.filter(x=>x.themeId===themeId).map(x=>x.cardId);
+   session.reopenedCardIds=session.reopenedCardIds||[];
+   refused.forEach(id=>{if(!session.reopenedCardIds.includes(id))session.reopenedCardIds.push(id)});
+   st.phase='discovery';st.altIndex++;
+   session.themeProgress[themeId]=st;
+   const remaining=allCards().filter(x=>x.type==='discovery'&&x.themeId===themeId).some(x=>(x.alternativeIndex??0)>=st.altIndex);
+   if(!remaining)completeTheme(themeId);
+  }else if(a==='no'||b==='no'){
    if(!data.achievementBlocked.includes(themeId))data.achievementBlocked.push(themeId);
    completeTheme(themeId);
   }else{
-   st.phase='discovery';st.altIndex++;session.themeProgress[themeId]=st;
+   st.phase='discovery';st.altIndex++;
+   session.themeProgress[themeId]=st;
    const remaining=allCards().filter(x=>x.type==='discovery'&&x.themeId===themeId).some(x=>(x.alternativeIndex??0)>=st.altIndex);
    if(!remaining)completeTheme(themeId);
   }
@@ -228,7 +244,8 @@ function processRoundPair(c){
    recordCuriosity(c);st.altIndex++;session.themeProgress[themeId]=st;
    const remaining=allCards().filter(x=>x.type==='discovery'&&x.themeId===themeId).some(x=>(x.alternativeIndex??0)>=st.altIndex);
    if(!remaining)completeTheme(themeId);
-  }else{
+    }else{
+   if(a==='no'||b==='no')rememberRefusedCard(c);
    st.phase='verification';session.themeProgress[themeId]=st;
   }
   return;

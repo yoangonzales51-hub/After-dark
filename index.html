@@ -808,8 +808,9 @@ async function remoteRefreshStatus(){
   if(memberError)throw memberError;
   afterDarkCoupleId=member?.couple_id||null;
   remoteStatus(afterDarkCoupleId
-   ? 'Connecté : '+user.email+' · couple associé. Le partage de la partie sera activé dans la prochaine étape.'
+   ? 'Connecté : '+user.email+' · couple associé. Vous pouvez lancer ou reprendre votre partie à distance.'
    : 'Connecté : '+user.email+' · aucun couple associé pour le moment.');
+  await remoteRefreshLatestRound();
  }catch(e){remoteStatus('Erreur : '+(e.message||String(e)),true);}
 }
 async function remoteSignUp(){
@@ -861,15 +862,16 @@ async function remoteSignOut(){
 
 let remoteGame={roundId:null,state:null,selectedCardId:null,channel:null,busy:false,lastSyncedRound:null};
 let afterDarkLatestRoundId=null;
+let afterDarkLatestRoundStatus=null;
 function remoteAnswerLabel(v){return ({yes:'OUI',no:'NON',maybe:'WHY NOT',pass:'PASSER',skip:'PASSER'})[v]||'—'}
 function remoteSetStatus(message,isError=false){const el=document.getElementById('remoteGameStatus');if(el){el.textContent=message;el.style.borderColor=isError?'rgba(255,90,100,.55)':''}}
 async function remoteRefreshLatestRound(){
  if(!afterDarkSupabase||!afterDarkCoupleId)return;
  try{
-  const {data,error}=await afterDarkSupabase.from('remote_rounds').select('id,status,created_at').eq('couple_id',afterDarkCoupleId).eq('status','playing').order('created_at',{ascending:false}).limit(1).maybeSingle();
+  const {data,error}=await afterDarkSupabase.from('remote_rounds').select('id,status,created_at').eq('couple_id',afterDarkCoupleId).order('created_at',{ascending:false}).limit(1).maybeSingle();
   if(error)throw error;
-  afterDarkLatestRoundId=data?.id||null;
- }catch(e){console.warn('AFTER DARK remote latest round',e);afterDarkLatestRoundId=null}
+  afterDarkLatestRoundId=data?.id||null;afterDarkLatestRoundStatus=data?.status||null;
+ }catch(e){console.warn('AFTER DARK remote latest round',e);afterDarkLatestRoundId=null;afterDarkLatestRoundStatus=null}
 }
 function remoteSubscribeRound(){
  if(!afterDarkSupabase||!remoteGame.roundId)return;
@@ -886,13 +888,14 @@ async function remoteStartOrResume(){
   if(!afterDarkCoupleId)await remoteRefreshStatus();
   if(!afterDarkCoupleId)throw new Error('Créez un couple ou rejoignez celui de votre partenaire.');
   await remoteRefreshLatestRound();
-  if(afterDarkLatestRoundId){
-   remoteGame.roundId=afterDarkLatestRoundId;
-   await remoteRefreshRoundState();
-   remoteSubscribeRound();
-   show('remoteGame');
-   remoteResult('Partie en cours retrouvée. Vous pouvez reprendre où vous en étiez.');
-   return;
+  if(afterDarkLatestRoundId&&afterDarkLatestRoundStatus==='playing'){
+   remoteGame.roundId=afterDarkLatestRoundId;localStorage.setItem('afterdark.remote.round',remoteGame.roundId);
+   await remoteRefreshRoundState();remoteSubscribeRound();show('remoteGame');
+   remoteResult('Partie en cours retrouvée. Vous pouvez reprendre où vous en étiez.');return;
+  }
+  if(afterDarkLatestRoundId&&afterDarkLatestRoundStatus==='completed'){
+   remoteGame.roundId=afterDarkLatestRoundId;await remoteRefreshRoundState();
+   remoteGame.roundId=null;
   }
   const chosen=selectedCards().filter(c=>c.type==='independent'||c.type==='discovery');
   const cards=chosen.filter(c=>isCategoryOpen(c.cat||c.category||'Non classée'))
@@ -906,7 +909,7 @@ async function remoteStartOrResume(){
   if(!cards.length)throw new Error('Aucune carte disponible dans la sélection actuelle.');
   const {data:roundId,error:createError}=await sb.rpc('create_remote_round_v2',{p_cards:cards});
   if(createError)throw createError;
-  remoteGame.roundId=roundId;remoteGame.state=null;remoteGame.selectedCardId=null;
+  remoteGame.roundId=roundId;localStorage.setItem('afterdark.remote.round',roundId);remoteGame.state=null;remoteGame.selectedCardId=null;
   await remoteRefreshRoundState();remoteSubscribeRound();show('remoteGame');
  }catch(e){remoteStatus('Impossible de lancer la partie : '+(e.message||String(e)),true)}
 }

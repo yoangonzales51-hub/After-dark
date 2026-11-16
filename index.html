@@ -598,11 +598,33 @@ function renderTodo(){
   if(isUnlocked&&canPropose)controls=`<p class="muted">Cette proposition est disponible. Elle devra être choisie à nouveau avant de pouvoir être marquée comme terminée.</p><button class="btn secondary" onclick="startProposal('${t.id}')">Proposer séparément</button>`;
   else if(isCurious)controls=`<p class="muted">WHY NOT = curiosité. Ce n’est ni un oui, ni une obligation.</p>${canPropose?`<button class="btn secondary" onclick="startProposal('${t.id}')">Revoir la proposition</button>`:''}`;
   else if(c.type==='discovery')controls='<p class="muted">La réalisation associée, si elle a été débloquée, apparaît séparément ici.</p>';
+  else if(canPropose&&afterDarkCoupleId){const own=!!votes[0],partner=!!votes[1];controls=(partner&&!own?'<p class="muted">Votre partenaire a confirmé que cette réalisation est terminée.</p>':'')+(own?'<p class="muted">Votre confirmation est enregistrée. En attente de votre partenaire.</p>':'<button class="btn secondary" onclick="finishTodo(\''+t.id+'\')">Je confirme que c’est terminé</button>');}
+  else if(canPropose&&session.playerMode==='duo'){controls='<p class="muted">La réalisation sera terminée après les deux confirmations.</p>'+(votes[0]?'':'<button class="btn secondary" onclick="finishTodo(\''+t.id+'\',0)">Joueur 1 · confirmer</button>')+(votes[1]?'':'<button class="btn secondary" onclick="finishTodo(\''+t.id+'\',1)">Joueur 2 · confirmer</button>');}
   else controls=`<button class="btn secondary" onclick="finishTodo('${t.id}')">✓ Fini</button>`;
   return `<div class="item"><span class="pill">${isUnlocked?(c.type==='mythic'?'CARTE MYTHIQUE DÉBLOQUÉE':'RÉALISATION DÉBLOQUÉE'):isCurious?'CURIOSITÉ':'ENVIE ACCEPTÉE'}</span><div>${escapeHtml(c.desc||'')}</div>${controls}</div>`;
  }).join('')).join('');
 }
-function finishTodo(id){const t=data.todo.find(x=>x.id===id);if(!t||t.done)return;t.done=true;t.completedAt=new Date().toISOString();checkAchievementUnlocks();save();renderTodo();if(afterDarkCoupleId)remoteSaveTodo(t);}
+async function finishTodo(id,playerIndex=null){
+ const t=data.todo.find(x=>x.id===id);if(!t||t.done)return;
+ const c=findCard(id),requiresMutual=c&&(c.type==='realization'||c.type==='mythic');
+ if(requiresMutual&&afterDarkCoupleId){
+  try{
+   const {data:result,error}=await afterDarkSupabase.rpc('confirm_remote_todo_done',{p_card_id:id});
+   if(error)throw error;
+   await remoteRefreshTodoStates();
+   if(result?.done){checkAchievementUnlocks();save();}
+   renderTodo();
+  }catch(e){alert('Confirmation impossible : '+(e.message||String(e)));}
+  return;
+ }
+ if(requiresMutual&&session.playerMode==='duo'){
+  if(playerIndex!==0&&playerIndex!==1)return;
+  t.doneVotes=t.doneVotes||[false,false];t.doneVotes[playerIndex]=true;
+  if(t.doneVotes[0]&&t.doneVotes[1]){t.done=true;t.completedAt=new Date().toISOString();checkAchievementUnlocks();}
+  save();renderTodo();return;
+ }
+ t.done=true;t.completedAt=new Date().toISOString();checkAchievementUnlocks();save();renderTodo();
+}
 function completedRealizations(){return data.todo.filter(t=>t.done&&findCard(t.id)?.type==='realization')}
 function checkAchievementUnlocks(){
  const done=completedRealizations();
@@ -1020,7 +1042,7 @@ async function remoteRefreshTodoStates(){
   (rows||[]).forEach(row=>{
    let t=data.todo.find(x=>x.id===row.card_id);
    if(!t){t={id:row.card_id,status:row.status,source:row.source||null,done:!!row.done,doneVotes:[false,false]};data.todo.push(t)}
-   else{t.status=row.status;t.source=row.source||t.source||null;t.done=!!(t.done||row.done);if(row.completed_at)t.completedAt=row.completed_at}
+   else{t.status=row.status;t.source=row.source||t.source||null;t.done=!!row.done;t.doneVotes=[!!row.my_done_vote,!!row.partner_done_vote];if(row.completed_at)t.completedAt=row.completed_at}
   });
   save();if(!document.getElementById('todo')?.classList.contains('hidden'))renderTodo();
  }catch(e){console.warn('AFTER DARK todo refresh',e)}

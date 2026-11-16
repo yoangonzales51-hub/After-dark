@@ -1,0 +1,7 @@
+AFTER DARK V7 — état réel
+
+Fonctionnel dans cette livraison : application locale, solo, téléphone commun, swipe, pages À faire et Succès, navigation Mode, catalogues intégrés.
+
+Non fonctionnel / pas encore livré : jeu distant réel à deux téléphones, création de comptes, invitation du partenaire, synchronisation en direct, reprise automatique d'une partie sur un autre appareil.
+
+Ne présentez pas le mode distant comme opérationnel. La connexion Supabase doit faire l'objet d'un développement et de tests dédiés.

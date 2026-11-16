@@ -1,25 +1,20 @@
-AFTER DARK — PACK CATALOGUE COMPLET
+AFTER DARK — PACK CORRIGÉ
 
-FICHIERS
-- index.html : application locale avec les 600 cartes classiques intégrées, les trois types de cartes, les liens vers les réalisations différées et le bouton facultatif « C’est quoi ? » lorsque la carte possède une explication.
-- catalogue_600.json : version indépendante et modifiable du catalogue complet.
-- cartes_mythiques.json : 25 cartes Mythiques et leurs succès thématiques associés, conservées à part du paquet classique.
-- supabase.sql : schéma SQL antérieur, complété par les tables de catalogue card_catalog et mythic_catalog.
-- LISEZ_MOI.txt : répartition et limites de cette livraison.
+CONTENU
+- index.html : application locale corrigée, avec 600 cartes classiques, 25 Mythiques, parcours conditionnel et sauvegarde locale.
+- catalogue_600.json : catalogue indépendant de 600 cartes.
+- cartes_mythiques.json : 25 cartes Mythiques séparées, liées aux succès.
+- supabase.sql : schéma antérieur + import idempotent du catalogue classique et Mythique.
+- LISEZ_MOI.txt : état et limites.
 
-RÉPARTITION
-600 cartes classiques : 150 par niveau. Chaque niveau contient 75 découvertes, 50 défis indépendants et 25 réalisations différées. Au total : 300 découvertes, 200 défis indépendants et 100 réalisations. Les 25 cartes Mythiques sont en supplément et ne sont pas comprises dans les 600.
-
-MISE À JOUR GITHUB PAGES
-1. Ouvre https://github.com/yoangonzales51-hub/After-dark
-2. Remplace index.html par celui du pack et valide le commit sur la branche publiée.
-3. Conserve les ressources PWA déjà présentes dans le dépôt (manifest.webmanifest, icônes et sw.js).
-4. Recharge le site après la publication. Sur Android, ferme puis rouvre la PWA si l'ancien cache reste affiché.
+INSTALLATION GITHUB PAGES
+1. Ouvre le dépôt https://github.com/yoangonzales51-hub/After-dark
+2. Remplace index.html par celui de ce pack et publie le commit sur la branche GitHub Pages.
+3. Conserve manifest.webmanifest, sw.js et le dossier icons déjà présents dans le dépôt.
+4. Recharge le site ; si la PWA garde l'ancienne version, ferme-la complètement puis rouvre-la.
 
 SUPABASE
-Le SQL ajoute des tables de catalogue, mais cette livraison ne raccorde pas le jeu à la synchronisation Supabase. Le mode à distance n'est donc pas opérationnel. N'utilise jamais une clé service_role dans index.html.
+Le SQL contient les tables et les données de catalogue, mais le mode deux téléphones n'est pas encore raccordé dans l'interface. Ne lance pas de partie à distance et n'utilise jamais une clé service_role dans le navigateur.
 
-ÉTAT FONCTIONNEL À NE PAS CONFONDRE
-Le catalogue, les identifiants, les types, les alternatives de découverte, les liens exacts vers les réalisations et les explications facultatives sont présents. En revanche, le moteur de partie de cette version n'exécute pas encore intégralement les embranchements conditionnels approuvés (WHY NOT → proposition alternative ; réponse NON → vérification du thème ; refus du thème → succès associé masqué) ni le déblocage effectif des cartes Mythiques par succès. Les 25 cartes Mythiques et leurs conditions thématiques sont fournies comme données, pas encore activées dans l'interface.
-
-La sauvegarde locale existante est conservée. Avant d'utiliser le jeu à deux sur deux téléphones, il faudra intégrer et tester la synchronisation distante.
+SAUVEGARDE
+La progression locale est enregistrée dans le navigateur. Les anciennes données AFTER DARK v3/v4 sont reprises pour les noms, cartes personnelles, historique et listes ; une ancienne partie inachevée peut devoir être recommencée pour appliquer le nouveau moteur. Exporte régulièrement une sauvegarde depuis Réglages.

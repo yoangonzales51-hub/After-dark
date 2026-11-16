@@ -323,6 +323,10 @@ function handleCategoryClick(button){
  requestCategoryReopen(category);
 }
 function requestCategoryReopen(category){
+ if(afterDarkCoupleId){
+  if(!confirm('Souhaitez-vous redécouvrir cette catégorie ? Votre partenaire devra également répondre OUI.'))return;
+  remoteRequestCategoryReopen(category);return;
+ }
  if(playerMode==='solo'&&!session.active){
   alert('La réouverture nécessite deux réponses OUI. Passez en mode téléphone commun.');
   return;
@@ -865,6 +869,21 @@ async function remoteSignOut(){
 let remoteGame={roundId:null,state:null,selectedCardId:null,channel:null,busy:false,lastSyncedRound:null};
 let afterDarkLatestRoundId=null;
 let afterDarkLatestRoundStatus=null;
+
+async function remoteRequestCategoryReopen(category){
+ try{
+  if(!afterDarkCoupleId)throw new Error('Connectez-vous et associez votre partenaire pour rouvrir une catégorie à distance.');
+  if(!remoteGame.roundId)await remoteStartOrResume();
+  if(!remoteGame.roundId)throw new Error('Impossible de retrouver la partie distante.');
+  const cards=allCards().filter(c=>(c.cat||c.category||'Non classée')===category&&(c.type==='independent'||c.type==='discovery'))
+   .sort((a,b)=>(a.themeId||'').localeCompare(b.themeId||'')||(a.alternativeIndex??0)-(b.alternativeIndex??0))
+   .map(c=>({card_id:c.id,card_type:c.type,theme_id:c.themeId||null,alternative_index:c.alternativeIndex??0,linked_realization_id:c.linkedRealizationId||null,category_id:category}));
+  if(!cards.length)throw new Error('Aucune carte disponible dans cette catégorie.');
+  const {data:verificationId,error}=await afterDarkSupabase.rpc('append_remote_category_reopen',{p_round_id:remoteGame.roundId,p_category:category,p_cards:cards});
+  if(error)throw error;
+  await remoteRefreshRoundState();remoteGame.selectedCardId=verificationId;remoteRenderRound();show('remoteGame');
+ }catch(e){alert('Réouverture impossible : '+(e.message||String(e)))}
+}
 function remoteAnswerLabel(v){return ({yes:'OUI',no:'NON',maybe:'WHY NOT',pass:'PASSER',skip:'PASSER'})[v]||'—'}
 function remoteSetStatus(message,isError=false){const el=document.getElementById('remoteGameStatus');if(el){el.textContent=message;el.style.borderColor=isError?'rgba(255,90,100,.55)':''}}
 async function remoteRefreshLatestRound(){
@@ -907,7 +926,7 @@ async function remoteStartOrResume(){
     if(a.type!==b.type)return a.type==='discovery'?-1:1;
     return (a.alternativeIndex??0)-(b.alternativeIndex??0);
    })
-   .map((c,position)=>({card_id:c.id,position,card_type:c.type,theme_id:c.themeId||null,alternative_index:c.alternativeIndex??0,linked_realization_id:c.linkedRealizationId||null}));
+   .map((c,position)=>({card_id:c.id,position,card_type:c.type,theme_id:c.themeId||null,alternative_index:c.alternativeIndex??0,linked_realization_id:c.linkedRealizationId||null,category_id:c.cat||c.category||'Non classée'}));
   if(!cards.length)throw new Error('Aucune carte disponible dans la sélection actuelle.');
   const {data:roundId,error:createError}=await sb.rpc('create_remote_round_v2',{p_cards:cards});
   if(createError)throw createError;
@@ -928,12 +947,18 @@ function remoteSyncPairedResults(state){
  session.summary=session.summary||{accepted:[],curious:[]};
  const previousMode=session.playerMode;session.playerMode='duo';
  state.cards.filter(x=>x.completed&&!x.cancelled&&x.my_answer&&x.partner_answer).forEach(item=>{
-  const c=findCard(item.card_id);if(!c)return;
+  let c=findCard(item.card_id);
+  if(!c&&item.card_type==='category_verification')c={id:item.card_id,type:'categoryVerification',cat:item.category_id,category:item.category_id,title:'Réouverture : '+item.category_id,desc:'Souhaitez-vous tous les deux redécouvrir cette catégorie ? Seuls deux OUI permettent sa réouverture.'};
+  if(!c)return;
   if(data.attempts.some(a=>a.remoteRoundId===remoteGame.roundId&&a.cardId===c.id))return;
   const a=item.my_answer==='skip'?'pass':item.my_answer,b=item.partner_answer==='skip'?'pass':item.partner_answer;
   const category=c.cat||c.category||c.themeId||'Non classée';
-  const outcome=(a==='pass'||b==='pass')?'pass':isYesMatch(a,b)?'accepted':isMaybeMatch(a,b)?'curious':(a==='no'||b==='no')?'refused':'other';
+  const outcome=c.type==='categoryVerification'?(a==='yes'&&b==='yes'?'accepted':'other'):(a==='pass'||b==='pass')?'pass':isYesMatch(a,b)?'accepted':isMaybeMatch(a,b)?'curious':(a==='no'||b==='no')?'refused':'other';
   data.attempts.unshift({remoteRoundId:remoteGame.roundId,date:new Date().toISOString(),cardId:c.id,title:c.title||'Proposition',category,type:c.type||c.kind||'unknown',themeId:c.themeId||null,playerCount:2,player1:{name:'Vous',answer:a},player2:{name:'Partenaire',answer:b},outcome});
+  if(c.type==='categoryVerification'){
+   if(a==='yes'&&b==='yes')data.categoryOverrides[category]=true;else delete data.categoryOverrides[category];
+   return;
+  }
   if(outcome==='accepted'){
    recordAccepted(c);
    if(c.type==='discovery'){
@@ -980,13 +1005,13 @@ function remoteRenderRound(){
  remoteSetStatus(state.status==='completed'?'Partie terminée · toutes les cartes disponibles ont été traitées.':state.completed_count+' / '+state.total+' cartes traitées à deux · '+waiting.length+' en attente de votre partenaire · '+available.length+' disponibles.');
  const selectedEl=document.getElementById('remoteSelectedCard');
  if(selected){
-  const c=findCard(selected.card_id);
+  const c=findCard(selected.card_id)||(selected.card_type==='category_verification'?{type:'categoryVerification',title:'Réouverture : '+selected.category_id,desc:'Souhaitez-vous tous les deux redécouvrir cette catégorie ? Seuls deux OUI permettent sa réouverture.'}:null);
   selectedEl.classList.remove('hidden');
-  selectedEl.innerHTML=c?'<div class="card"><span class="pill">'+(c.type==='discovery'?'DÉCOUVERTE':'DÉFI INDÉPENDANT')+'</span><h3>'+escapeHtml(c.title||'Proposition')+'</h3><p>'+escapeHtml(c.desc||'')+'</p><p class="muted">Votre réponse sera enregistrée immédiatement. La carte ne sera comptée qu’après la réponse de votre partenaire.</p></div><div class="actions"><button class="yes" onclick="remoteSubmitAnswer(\'yes\')">OUI</button><button onclick="remoteSubmitAnswer(\'no\')">NON</button><button onclick="remoteSubmitAnswer(\'maybe\')">WHY NOT</button><button onclick="remoteSubmitAnswer(\'pass\')">PASSER</button></div><button class="btn ghost" onclick="remoteGame.selectedCardId=null;remoteRenderRound()">Retour aux cartes</button>':'<div class="notice">Cette carte n’est plus disponible.</div>';
+  selectedEl.innerHTML=c?'<div class="card"><span class="pill">'+(c.type==='categoryVerification'?'VÉRIFICATION':c.type==='discovery'?'DÉCOUVERTE':'DÉFI INDÉPENDANT')+'</span><h3>'+escapeHtml(c.title||'Proposition')+'</h3><p>'+escapeHtml(c.desc||'')+'</p><p class="muted">Votre réponse sera enregistrée immédiatement. La carte ne sera comptée qu’après la réponse de votre partenaire.</p></div><div class="actions"><button class="yes" onclick="remoteSubmitAnswer(\'yes\')">OUI</button><button onclick="remoteSubmitAnswer(\'no\')">NON</button><button onclick="remoteSubmitAnswer(\'maybe\')">WHY NOT</button><button onclick="remoteSubmitAnswer(\'pass\')">PASSER</button></div><button class="btn ghost" onclick="remoteGame.selectedCardId=null;remoteRenderRound()">Retour aux cartes</button>':'<div class="notice">Cette carte n’est plus disponible.</div>';
  }else selectedEl.classList.add('hidden');
- document.getElementById('remoteAvailableCards').innerHTML='<h3>Cartes disponibles ('+available.length+')</h3>'+(available.length?available.map(x=>{const c=findCard(x.card_id);return c?'<button class="btn secondary" onclick="remoteSelectCard(\''+escapeHtml(x.card_id)+'\')">'+escapeHtml(c.title||'Proposition')+'</button>':''}).join(''):'<div class="notice">Aucune autre carte à répondre pour le moment.</div>');
- document.getElementById('remoteWaitingCards').innerHTML='<h3>En attente de votre partenaire ('+waiting.length+')</h3>'+(waiting.length?waiting.map(x=>{const c=findCard(x.card_id);return '<div class="item"><b>'+escapeHtml(c?.title||x.card_id)+'</b><p class="muted">Votre réponse : '+remoteAnswerLabel(x.my_answer)+' · réponse du partenaire en attente</p></div>'}).join(''):'<div class="muted small">Aucune carte en attente.</div>');
- document.getElementById('remoteCompletedCards').innerHTML='<h3>Cartes terminées à deux ('+completed.length+')</h3>'+(completed.length?completed.map(x=>{const c=findCard(x.card_id);return '<div class="item"><b>'+escapeHtml(c?.title||x.card_id)+'</b><p class="muted">Vous : '+remoteAnswerLabel(x.my_answer)+' · Partenaire : '+remoteAnswerLabel(x.partner_answer)+'</p></div>'}).join(''):'<div class="muted small">Les réponses apparaîtront ici uniquement lorsque vous aurez tous les deux répondu.</div>');
+ document.getElementById('remoteAvailableCards').innerHTML='<h3>Cartes disponibles ('+available.length+')</h3>'+(available.length?available.map(x=>{const c=findCard(x.card_id),title=c?.title||(x.card_type==='category_verification'?'Réouverture : '+x.category_id:'Proposition');return '<button class="btn secondary" onclick="remoteSelectCard(\\''+escapeHtml(x.card_id)+'\\')">'+escapeHtml(title)+'</button>'}).join(''):'<div class="notice">Aucune autre carte à répondre pour le moment.</div>');
+ document.getElementById('remoteWaitingCards').innerHTML='<h3>En attente de votre partenaire ('+waiting.length+')</h3>'+(waiting.length?waiting.map(x=>{const c=findCard(x.card_id),title=c?.title||(x.card_type==='category_verification'?'Réouverture : '+x.category_id:x.card_id);return '<div class="item"><b>'+escapeHtml(title)+'</b><p class="muted">Votre réponse : '+remoteAnswerLabel(x.my_answer)+' · réponse du partenaire en attente</p></div>'}).join(''):'<div class="muted small">Aucune carte en attente.</div>');
+ document.getElementById('remoteCompletedCards').innerHTML='<h3>Cartes terminées à deux ('+completed.length+')</h3>'+(completed.length?completed.map(x=>{const c=findCard(x.card_id),title=c?.title||(x.card_type==='category_verification'?'Réouverture : '+x.category_id:x.card_id);return '<div class="item"><b>'+escapeHtml(title)+'</b><p class="muted">Vous : '+remoteAnswerLabel(x.my_answer)+' · Partenaire : '+remoteAnswerLabel(x.partner_answer)+'</p></div>'}).join(''):'<div class="muted small">Les réponses apparaîtront ici uniquement lorsque vous aurez tous les deux répondu.</div>');
 }
 function remoteSelectCard(id){remoteGame.selectedCardId=id;remoteRenderRound()}
 async function remoteSubmitAnswer(answer){

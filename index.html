@@ -818,6 +818,7 @@ async function remoteRefreshStatus(){
    : 'Connecté : '+user.email+' · aucun couple associé pour le moment.');
   await remoteSyncPastRounds();
   await remoteRefreshTodoStates();
+  remoteSubscribeTodos();
   await remoteRefreshLatestRound();
  }catch(e){remoteStatus('Erreur : '+(e.message||String(e)),true);}
 }
@@ -931,6 +932,13 @@ async function remoteRefreshLatestRound(){
   afterDarkLatestRoundId=data?.id||null;afterDarkLatestRoundStatus=data?.status||null;
  }catch(e){console.warn('AFTER DARK remote latest round',e);afterDarkLatestRoundId=null;afterDarkLatestRoundStatus=null}
 }
+function remoteSubscribeTodos(){
+ if(!afterDarkSupabase||!afterDarkCoupleId)return;
+ if(remoteGame.todoChannel){afterDarkSupabase.removeChannel(remoteGame.todoChannel);remoteGame.todoChannel=null}
+ remoteGame.todoChannel=afterDarkSupabase.channel('after-dark-todos-'+afterDarkCoupleId)
+  .on('postgres_changes',{event:'*',schema:'public',table:'remote_todo_states',filter:'couple_id=eq.'+afterDarkCoupleId},()=>remoteRefreshTodoStates())
+  .subscribe();
+}
 function remoteSubscribeRound(){
  if(!afterDarkSupabase||!remoteGame.roundId)return;
  if(remoteGame.channel){afterDarkSupabase.removeChannel(remoteGame.channel);remoteGame.channel=null}
@@ -938,10 +946,7 @@ function remoteSubscribeRound(){
  remoteGame.channel=afterDarkSupabase.channel('after-dark-round-'+id)
   .on('postgres_changes',{event:'UPDATE',schema:'public',table:'remote_rounds',filter:'id=eq.'+id},()=>remoteRefreshRoundState())
   .subscribe();
- if(remoteGame.todoChannel){afterDarkSupabase.removeChannel(remoteGame.todoChannel);remoteGame.todoChannel=null}
- remoteGame.todoChannel=afterDarkSupabase.channel('after-dark-todos-'+afterDarkCoupleId)
-  .on('postgres_changes',{event:'*',schema:'public',table:'remote_todo_states',filter:'couple_id=eq.'+afterDarkCoupleId},()=>remoteRefreshTodoStates())
-  .subscribe();
+ remoteSubscribeTodos();
 }
 async function remoteStartOrResume(){
  const sb=initRemoteClient();if(!sb)return;

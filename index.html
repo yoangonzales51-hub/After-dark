@@ -870,6 +870,7 @@ async function remoteLeaveCouple(){
  if(!afterDarkUser||!afterDarkCoupleId){alert('Aucun couple actif à quitter.');return}
  if(!confirm('Quitter ce couple ? Les deux comptes seront dissociés. Vos comptes et les historiques déjà enregistrés ne seront pas supprimés. Cette action ne peut pas être annulée.'))return;
  try{
+  if(remoteGame.coupleChannel)await remoteGame.coupleChannel.send({type:'broadcast',event:'couple-ended',payload:{reason:'member_left'}});
   const {error}=await afterDarkSupabase.rpc('leave_couple');if(error)throw error;
   if(remoteGame.channel)await afterDarkSupabase.removeChannel(remoteGame.channel);if(remoteGame.todoChannel)await afterDarkSupabase.removeChannel(remoteGame.todoChannel);if(remoteGame.coupleChannel)await afterDarkSupabase.removeChannel(remoteGame.coupleChannel);
   remoteGame.channel=null;remoteGame.todoChannel=null;remoteGame.coupleChannel=null;remoteGame.partnerOnline=false;remoteGame.roundId=null;remoteGame.state=null;afterDarkLatestRoundId=null;afterDarkCoupleId=null;afterDarkPartnerId=null;afterDarkPartnerAvatar='';remoteRenderProfileBar();
@@ -895,6 +896,12 @@ function remoteSubscribeCouplePresence(){
  if(remoteGame.coupleChannel){afterDarkSupabase.removeChannel(remoteGame.coupleChannel);remoteGame.coupleChannel=null;}
  const coupleId=afterDarkCoupleId,userId=afterDarkUser.id;
  const channel=afterDarkSupabase.channel('after-dark-couple-'+coupleId,{config:{presence:{key:userId}}});
+ channel.on('broadcast',{event:'couple-ended'},async()=>{
+  if(remoteGame.channel)await afterDarkSupabase.removeChannel(remoteGame.channel);
+  if(remoteGame.todoChannel)await afterDarkSupabase.removeChannel(remoteGame.todoChannel);
+  if(remoteGame.coupleChannel)await afterDarkSupabase.removeChannel(remoteGame.coupleChannel);
+  remoteGame.channel=null;remoteGame.todoChannel=null;remoteGame.coupleChannel=null;remoteGame.partnerOnline=false;remoteGame.roundId=null;remoteGame.state=null;afterDarkLatestRoundId=null;afterDarkCoupleId=null;afterDarkPartnerId=null;afterDarkPartnerAvatar='';remoteRenderProfileBar();show('remoteSetup');remoteStatus('Votre partenaire a quitté le couple. Les deux comptes sont maintenant dissociés.');
+ });
  channel.on('presence',{event:'sync'},()=>{
   const state=channel.presenceState();
   const keys=Object.keys(state||{});

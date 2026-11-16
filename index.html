@@ -165,6 +165,7 @@ function renderGame(){
 function setCat(c){cat=c;renderGame()}function setTier(t){tier=t;cat='Toutes';renderGame()}function toggleExplanation(){let e=document.getElementById('cardExplanation');if(e)e.classList.toggle('hidden')}
 function isYesMatch(a,b){return (a==='yes'&&b==='yes')||(a==='yes'&&b==='maybe')||(a==='maybe'&&b==='yes')}
 function isMaybeMatch(a,b){return a==='maybe'&&b==='maybe'}
+
 function recordAttempt(c,a,b){
  if(!c)return;
  const outcome=(a==='pass'||b==='pass')?'pass':isYesMatch(a,b)?'accepted':isMaybeMatch(a,b)?'curious':(a==='no'||b==='no')?'refused':'other';
@@ -175,12 +176,14 @@ function recordAttempt(c,a,b){
   category:c.cat||c.category||c.themeId||'Non classée',
   type:c.type||c.kind||'unknown',
   themeId:c.themeId||null,
+  playerCount:session.playerMode==='solo'?1:2,
   player1:{name:data.names[0]||'Joueur 1',answer:a||null},
-  player2:{name:session.playerMode==='solo'?(data.names[0]||'Joueur 1'):(data.names[1]||'Joueur 2'),answer:b||null},
+  player2:{name:session.playerMode==='solo'?(data.names[0]||'Joueur 1'):(data.names[1]||'Joueur 2'),answer:session.playerMode==='solo'?null:(b||null)},
   outcome
  });
  save();
 }
+
 function addTodo(c,status,source){
  if(!c)return null;let t=data.todo.find(x=>x.id===c.id);
  if(!t){t={id:c.id,status,source:source||null,done:false,doneVotes:[false,false],created:new Date().toISOString()};data.todo.push(t)}

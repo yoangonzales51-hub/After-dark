@@ -239,7 +239,7 @@ function nextPartner(){session.needsHandoff=false;save();renderGame();show('game
 function finishGame(){
  const accepted=session.summary.accepted.length,curious=session.summary.curious.length;
  data.rounds=(data.rounds||0)+1;data.matches=(data.matches||0)+accepted;
- data.history.unshift({date:new Date().toISOString(),accepted:[...session.summary.accepted],curious:[...session.summary.curious]});data.history=data.history.slice(0,50);
+ data.history.unshift({date:new Date().toISOString(),accepted:[...session.summary.accepted],curious:[...session.summary.curious]});
  session.active=false;session.needsHandoff=false;save();
  document.getElementById('matchCount').textContent=accepted;document.getElementById('discussCount').textContent=curious;
  let out='';if(accepted)out+='<h3>Envies acceptées</h3><p class="muted">Une envie acceptée dans le jeu reste à confirmer librement au moment de la réalisation.</p>';
@@ -300,6 +300,17 @@ function renderAchievements(){
  if(!visible.length){el.innerHTML='<div class="notice">Les succès restent secrets jusqu’à ce que vous exploriez les thèmes associés.</div>';return}
  el.innerHTML=visible.map(([id,x])=>{const card=mythicCatalog.find(c=>c.achievementId===id);const reward=card&&unlocked.has(card.id)?`<div class="notice"><b>${escapeHtml(card.title)}</b><p>${escapeHtml(card.desc)}</p><button class="btn secondary" onclick="startProposal('${card.id}')">Proposer cette carte Mythique</button></div>`:'<p class="muted">Succès révélé · encore verrouillé</p>';return `<div class="item"><span class="pill">${escapeHtml(x.icon||'👑')} MYTHIQUE</span><b>${escapeHtml(x.title)}</b>${reward}</div>`}).join('');
 }
+function renderHistory(){
+ const el=document.getElementById('historyList');if(!el)return;
+ const entries=Array.isArray(data.history)?data.history:[];
+ if(!entries.length){el.innerHTML='<div class="notice">Aucune partie terminée pour le moment.</div>';return}
+ el.innerHTML=entries.map((entry,index)=>{
+  const date=new Date(entry.date);
+  const dateLabel=Number.isNaN(date.getTime())?'Date inconnue':date.toLocaleString('fr-FR',{dateStyle:'short',timeStyle:'short'});
+  const accepted=Array.isArray(entry.accepted)?entry.accepted.length:0;
+  const curious=Array.isArray(entry.curious)?entry.curious.length:0;
+  return '<div class="item"><b>Partie '+(entries.length-index)+'</b><p class="muted">'+dateLabel+'</p><div class="stats-row"><span>✓ '+accepted+' envie(s) acceptée(s)</span><span>◇ '+curious+' curiosité(s)</span></div></div>';
+ }).join('');
 function renderStats(){document.getElementById('statRounds').textContent=data.rounds||0;document.getElementById('statMatches').textContent=data.matches||0;document.getElementById('statsText').textContent=`${data.rounds||0} partie(s) terminée(s).`}
 function addCustom(){let level=document.getElementById('customLevel').value,category=document.getElementById('customCat').value.trim()||'Personnalisé',desc=document.getElementById('customDesc').value.trim();if(desc.length<8)return alert('Ajoute une carte plus détaillée.');data.custom.push({id:'CUSTOM-'+Date.now(),cat:category,level:level.replace('_',' '),tier:level,title:'Carte personnelle '+(data.custom.length+1),desc,type:'independent',kind:'independent'});save();renderCustom();document.getElementById('customDesc').value=''}
 function renderCustom(){let el=document.getElementById('customList');el.innerHTML=data.custom.length?data.custom.map((c,i)=>`<div class="item">${escapeHtml(c.desc)} <button class="chip" onclick="deleteCustom(${i})">Supprimer</button></div>`).join(''):'Aucune carte personnelle.'}

@@ -183,7 +183,28 @@ function recordAttempt(c,a,b){
  });
  save();
 }
+function getCategoryStats(category){
+ const attempts=(data.attempts||[]).filter(item=>
+  item.category===category&&item.outcome!=='pass'
+ );
+ let favorable=0,defavorable=0;
 
+ attempts.forEach(item=>{
+  const answers=[item.player1?.answer];
+  if(item.playerCount!==1)answers.push(item.player2?.answer);
+
+  const positive=answers.filter(a=>a==='yes'||a==='maybe').length;
+  const negative=answers.filter(a=>a==='no').length;
+
+  if(positive>negative)favorable++;
+  else if(negative>positive)defavorable++;
+ });
+
+ const total=favorable+defavorable;
+ const percentage=total?Math.round(favorable/total*100):100;
+
+ return {favorable,defavorable,total,percentage,open:percentage>=50};
+}
 function addTodo(c,status,source){
  if(!c)return null;let t=data.todo.find(x=>x.id===c.id);
  if(!t){t={id:c.id,status,source:source||null,done:false,doneVotes:[false,false],created:new Date().toISOString()};data.todo.push(t)}

@@ -65,6 +65,7 @@
   <input class="field" id="remoteInviteCode" maxlength="40" autocapitalize="characters" placeholder="Code d’invitation">
   <button class="btn secondary" onclick="remoteJoinCouple()">Rejoindre le couple</button>
   <div id="remoteAccountStatus" class="notice" style="margin-top:14px" aria-live="polite">Vous n’êtes pas connecté.</div>
+  <div id="remotePartnerPresenceSetup" class="notice" style="margin-top:8px">⚪ Partenaire hors ligne</div>
   <div id="remoteInviteResult" class="notice hidden" style="margin-top:10px"></div>
   <button class="btn" onclick="remoteStartOrResume()">Lancer / reprendre la partie à distance</button>
   <button class="btn ghost" onclick="remoteSignOut()">Se déconnecter</button>
@@ -73,6 +74,7 @@
 <section class="panel hidden" id="remoteGame">
   <div class="eyebrow">Partie synchronisée</div><div class="h">Votre aventure à deux</div>
   <div id="remoteGameStatus" class="notice" aria-live="polite">Connexion à la partie…</div>
+  <div id="remotePartnerPresenceGame" class="notice" style="margin-top:8px">⚪ Partenaire hors ligne</div>
   <button class="btn secondary" onclick="remoteStartOrResume()">Nouvelle partie / reprendre</button>
   <div id="remoteSelectedCard" class="hidden"></div>
   <div id="remoteAvailableCards"></div>
@@ -803,6 +805,33 @@ function initRemoteClient(){
  return afterDarkSupabase;
 }
 function openRemoteSetup(){show('remoteSetup');remoteResult('');remoteRefreshStatus();}
+function remoteRenderPartnerPresence(){
+ const label=remoteGame.partnerOnline?'🟢 Partenaire en ligne':'⚪ Partenaire hors ligne';
+ ['remotePartnerPresenceSetup','remotePartnerPresenceGame'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=label;});
+}
+function remoteSubscribeCouplePresence(){
+ if(!afterDarkSupabase||!afterDarkCoupleId||!afterDarkUser)return;
+ if(remoteGame.coupleChannel){afterDarkSupabase.removeChannel(remoteGame.coupleChannel);remoteGame.coupleChannel=null;}
+ const coupleId=afterDarkCoupleId,userId=afterDarkUser.id;
+ const channel=afterDarkSupabase.channel('after-dark-couple-'+coupleId,{config:{presence:{key:userId}}});
+ channel.on('presence',{event:'sync'},()=>{
+  const state=channel.presenceState();
+  const keys=Object.keys(state||{});
+  remoteGame.partnerOnline=keys.some(key=>key!==userId);
+  remoteRenderPartnerPresence();
+ }).on('postgres_changes',{event:'INSERT',schema:'public',table:'remote_rounds',filter:'couple_id=eq.'+coupleId},async payload=>{
+  const round=payload.new;
+  if(!round?.id||round.status!=='playing')return;
+  remoteGame.roundId=round.id;localStorage.setItem('afterdark.remote.round',round.id);
+  remoteGame.state=null;remoteGame.selectedCardId=null;
+  await remoteRefreshRoundState();remoteSubscribeRound();show('remoteGame');
+ }).subscribe(async status=>{
+  if(status==='SUBSCRIBED'){
+   await channel.track({user_id:userId,online:true,last_seen:new Date().toISOString()});
+  }
+ });
+ remoteGame.coupleChannel=channel;
+}
 async function remoteRefreshStatus(){
  const sb=initRemoteClient();if(!sb)return;
  try{
@@ -813,6 +842,7 @@ async function remoteRefreshStatus(){
   const {data:member,error:memberError}=await sb.from('couple_members').select('couple_id').eq('user_id',user.id).maybeSingle();
   if(memberError)throw memberError;
   afterDarkCoupleId=member?.couple_id||null;
+  if(afterDarkCoupleId)remoteSubscribeCouplePresence();
   remoteStatus(afterDarkCoupleId
    ? 'Connecté : '+user.email+' · couple associé. Vous pouvez lancer ou reprendre votre partie à distance.'
    : 'Connecté : '+user.email+' · aucun couple associé pour le moment.');
@@ -820,6 +850,7 @@ async function remoteRefreshStatus(){
   await remoteRefreshTodoStates();
   remoteSubscribeTodos();
   await remoteRefreshLatestRound();
+  if(afterDarkLatestRoundId&&afterDarkLatestRoundStatus==='playing'&&!remoteGame.roundId){remoteGame.roundId=afterDarkLatestRoundId;localStorage.setItem('afterdark.remote.round',remoteGame.roundId);await remoteRefreshRoundState();remoteSubscribeRound();show('remoteGame');}
  }catch(e){remoteStatus('Erreur : '+(e.message||String(e)),true);}
 }
 async function remoteSignUp(){
@@ -859,17 +890,17 @@ async function remoteJoinCouple(){
   const code=document.getElementById('remoteInviteCode').value.trim().replace(/\\s+/g,'');
   if(!code)throw new Error('Saisissez le code d’invitation.');
   const {data,error}=await sb.rpc('join_couple',{p_code:code});if(error)throw error;
-  afterDarkCoupleId=data;await remoteRefreshStatus();remoteResult('Vous avez rejoint le couple. L’association est enregistrée.');
+  afterDarkCoupleId=data;await remoteRefreshStatus();remoteResult('Vous avez rejoint le couple. Connexion de votre partenaire… lancement ou reprise de la partie.');await remoteStartOrResume();
  }catch(e){remoteStatus('Impossible de rejoindre le couple : '+(e.message||String(e)),true);}
 }
 async function remoteSignOut(){
  const sb=initRemoteClient();if(!sb)return;
- try{if(remoteGame.channel){await sb.removeChannel(remoteGame.channel);remoteGame.channel=null}if(remoteGame.todoChannel){await sb.removeChannel(remoteGame.todoChannel);remoteGame.todoChannel=null}const {error}=await sb.auth.signOut();if(error)throw error;afterDarkUser=null;afterDarkCoupleId=null;remoteGame.roundId=null;remoteGame.state=null;afterDarkLatestRoundId=null;remoteStatus('Vous êtes déconnecté.');remoteResult('');}
+ try{if(remoteGame.channel){await sb.removeChannel(remoteGame.channel);remoteGame.channel=null}if(remoteGame.todoChannel){await sb.removeChannel(remoteGame.todoChannel);remoteGame.todoChannel=null}if(remoteGame.coupleChannel){await sb.removeChannel(remoteGame.coupleChannel);remoteGame.coupleChannel=null}const {error}=await sb.auth.signOut();remoteGame.partnerOnline=false;remoteRenderPartnerPresence();if(error)throw error;afterDarkUser=null;afterDarkCoupleId=null;remoteGame.roundId=null;remoteGame.state=null;afterDarkLatestRoundId=null;remoteStatus('Vous êtes déconnecté.');remoteResult('');}
  catch(e){remoteStatus('Déconnexion impossible : '+(e.message||String(e)),true);}
 }
 
 
-let remoteGame={roundId:null,state:null,selectedCardId:null,channel:null,todoChannel:null,busy:false,lastSyncedRound:null};
+let remoteGame={roundId:null,state:null,selectedCardId:null,channel:null,todoChannel:null,coupleChannel:null,partnerOnline:false,busy:false,lastSyncedRound:null};
 let afterDarkLatestRoundId=null;
 let afterDarkLatestRoundStatus=null;
 

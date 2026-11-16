@@ -998,14 +998,20 @@ function remoteSyncPairedResults(state){
    if(a==='yes'&&b==='yes')data.categoryOverrides[category]=true;else delete data.categoryOverrides[category];
    return;
   }
+  if(item.card_type==='todo_proposal'){
+   let todo=data.todo.find(x=>x.id===c.id)||addTodo(c,'unlocked');
+   todo.status=(a==='pass'||b==='pass'||(!isYesMatch(a,b)&&!isMaybeMatch(a,b)))?'unlocked':isYesMatch(a,b)?'accepted':'curious';
+   todo.proposalState=(a==='pass'||b==='pass')?'skipped':isYesMatch(a,b)?'accepted':isMaybeMatch(a,b)?'curious':'declined';
+   remoteSaveTodo(todo);return;
+  }
   if(outcome==='accepted'){
-   recordAccepted(c);
+   recordAccepted(c);remotePersistTodo(c.id);
    if(c.type==='discovery'){
     const realization=findCard(c.linkedRealizationId);
-    if(realization)addTodo(realization,'unlocked',c.id);
+    if(realization){addTodo(realization,'unlocked',c.id);remotePersistTodo(realization.id);}
     if(c.themeId)markAchievementVisible(c.themeId);
    }
-  }else if(outcome==='curious')recordCuriosity(c);
+  }else if(outcome==='curious'){recordCuriosity(c);remotePersistTodo(c.id);}
   else if(c.type==='discovery'&&outcome==='refused')rememberRefusedCard(c);
  });
  if(state.status==='completed'&&!data.history.some(x=>x.remoteRoundId===remoteGame.roundId)){

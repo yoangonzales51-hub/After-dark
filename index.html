@@ -268,17 +268,16 @@ function handleCategoryClick(button){
  requestCategoryReopen(category);
 }
 function requestCategoryReopen(category){
- if(session.active){
-  alert('Terminez d’abord la partie en cours avant de demander une réouverture.');
-  return;
- }
- if(playerMode==='solo'){
-  alert('La réouverture nécessite deux réponses OUI. Passez en mode téléphone commun pour effectuer cette vérification.');
+ if(playerMode==='solo'&&!session.active){
+  alert('La réouverture nécessite deux réponses OUI. Passez en mode téléphone commun.');
   return;
  }
  if(!confirm('Souhaitez-vous redécouvrir cette catégorie ? Votre partenaire devra également répondre OUI.')){
   return;
  }
+ const returnSession=session.active
+  ? JSON.parse(JSON.stringify(session))
+  : null;
  session={
   active:true,
   queue:[],
@@ -292,6 +291,7 @@ function requestCategoryReopen(category){
   flow:'categoryVerification',
   categoryToReopen:category,
   categoryVerificationId:'CAT-VERIFY-'+Date.now(),
+  returnSession,
   summary:{accepted:[],curious:[]}
  };
  renderGame();
@@ -300,18 +300,28 @@ function requestCategoryReopen(category){
 function finishCategoryVerification(c){
  const a=session.answers[0][c.id];
  const b=session.answers[1][c.id];
+ const returnSession=session.returnSession;
  recordAttempt(c,a,b);
  if(a==='yes'&&b==='yes'){
   data.categoryOverrides[session.categoryToReopen]=true;
-  alert('Catégorie rouverte ! Elle pourra de nouveau apparaître dans vos parties.');
+  alert('Catégorie rouverte ! Vous pouvez continuer votre aventure.');
  }else{
   alert('La catégorie reste fermée. Deux OUI étaient nécessaires.');
  }
- session.active=false;
- session.needsHandoff=false;
- save();
- renderHistory();
- show('history');
+ if(returnSession){
+  session=returnSession;
+  playerMode=session.playerMode||'duo';
+  session.needsHandoff=false;
+  save();
+  renderGame();
+  show('game');
+ }else{
+  session.active=false;
+  session.needsHandoff=false;
+  save();
+  renderHistory();
+  show('history');
+ }
 }
 function addTodo(c,status,source){
  if(!c)return null;let t=data.todo.find(x=>x.id===c.id);

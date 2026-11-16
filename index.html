@@ -165,6 +165,22 @@ function renderGame(){
 function setCat(c){cat=c;renderGame()}function setTier(t){tier=t;cat='Toutes';renderGame()}function toggleExplanation(){let e=document.getElementById('cardExplanation');if(e)e.classList.toggle('hidden')}
 function isYesMatch(a,b){return (a==='yes'&&b==='yes')||(a==='yes'&&b==='maybe')||(a==='maybe'&&b==='yes')}
 function isMaybeMatch(a,b){return a==='maybe'&&b==='maybe'}
+function recordAttempt(c,a,b){
+ if(!c)return;
+ const outcome=(a==='pass'||b==='pass')?'pass':isYesMatch(a,b)?'accepted':isMaybeMatch(a,b)?'curious':(a==='no'||b==='no')?'refused':'other';
+ data.attempts.unshift({
+  date:new Date().toISOString(),
+  cardId:c.id,
+  title:c.title||c.achievementTitle||'Proposition',
+  category:c.cat||c.category||c.themeId||'Non classée',
+  type:c.type||c.kind||'unknown',
+  themeId:c.themeId||null,
+  player1:{name:data.names[0]||'Joueur 1',answer:a||null},
+  player2:{name:session.playerMode==='solo'?(data.names[0]||'Joueur 1'):(data.names[1]||'Joueur 2'),answer:b||null},
+  outcome
+ });
+ save();
+}
 function addTodo(c,status,source){
  if(!c)return null;let t=data.todo.find(x=>x.id===c.id);
  if(!t){t={id:c.id,status,source:source||null,done:false,doneVotes:[false,false],created:new Date().toISOString()};data.todo.push(t)}
@@ -181,6 +197,7 @@ function markAchievementVisible(themeId){
 function completeTheme(themeId){session.themeProgress[themeId]={...(session.themeProgress[themeId]||{}),phase:'done'};session.queueIndex++}
 function processRoundPair(c){
  const a=session.answers[0][c.id],b=session.playerMode==='solo'?a:session.answers[1][c.id];
+ recordAttempt(c,a,b);
  if(a==='pass'||b==='pass'){
   if(c.type==='verification'){completeTheme(c.themeId);return}
   if(c.type==='discovery'){const st=session.themeProgress[c.themeId]||{phase:'discovery',altIndex:0};st.altIndex++;session.themeProgress[c.themeId]=st;const remaining=allCards().some(x=>x.type==='discovery'&&x.themeId===c.themeId&&(x.alternativeIndex??0)>=st.altIndex);if(!remaining)completeTheme(c.themeId);return}
@@ -253,7 +270,9 @@ function startProposal(id){
  renderGame();show('game');
 }
 function finishProposal(c){
- const a=session.answers[0][c.id],b=session.answers[1][c.id],skipped=a==='pass'||b==='pass',proposalStatus=skipped?'unlocked':isYesMatch(a,b)?'accepted':isMaybeMatch(a,b)?'curious':'unlocked',t=addTodo(c,proposalStatus);
+ const a=session.answers[0][c.id],b=session.playerMode==='solo'?a:session.answers[1][c.id];
+ recordAttempt(c,a,b);
+ const skipped=a==='pass'||b==='pass',proposalStatus=skipped?'unlocked':isYesMatch(a,b)?'accepted':isMaybeMatch(a,b)?'curious':'unlocked',t=addTodo(c,proposalStatus);
  if(t){t.status=proposalStatus;t.proposalState=skipped?'skipped':isYesMatch(a,b)?'accepted':isMaybeMatch(a,b)?'curious':'declined';t.doneVotes=t.doneVotes||[false,false]}
  session.active=false;session.needsHandoff=false;save();
  document.getElementById('matchCount').textContent=isYesMatch(a,b)?1:0;document.getElementById('discussCount').textContent=isMaybeMatch(a,b)?1:0;

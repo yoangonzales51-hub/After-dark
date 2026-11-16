@@ -386,16 +386,60 @@ function renderAchievements(){
  el.innerHTML=visible.map(([id,x])=>{const card=mythicCatalog.find(c=>c.achievementId===id);const reward=card&&unlocked.has(card.id)?`<div class="notice"><b>${escapeHtml(card.title)}</b><p>${escapeHtml(card.desc)}</p><button class="btn secondary" onclick="startProposal('${card.id}')">Proposer cette carte Mythique</button></div>`:'<p class="muted">Succès révélé · encore verrouillé</p>';return `<div class="item"><span class="pill">${escapeHtml(x.icon||'👑')} MYTHIQUE</span><b>${escapeHtml(x.title)}</b>${reward}</div>`}).join('');
 }
 
+
 function renderHistory(){
- const el=document.getElementById('historyList');if(!el)return;
+ const el=document.getElementById('historyList');
+ if(!el)return;
+
  const attempts=Array.isArray(data.attempts)?data.attempts:[];
  const entries=Array.isArray(data.history)?data.history:[];
  const answerLabel={yes:'OUI',no:'NON',maybe:'WHY NOT',pass:'PASSER'};
  const outcomeLabel={accepted:'Envie acceptée',curious:'Curiosité · WHY NOT',refused:'Refusée',pass:'Passée',other:'Non retenue'};
+
  let html='';
+
+ // CATÉGORIES DÉCOUVERTES
+ const categories=[...new Set(allCards().map(c=>c.cat||c.category||'Non classée'))];
+ const discovered=categories.filter(category=>
+  attempts.some(item=>item.category===category&&item.type!=='verification')
+ );
+
+ html+='<h3>Catégories découvertes</h3>';
+
+ if(discovered.length){
+  html+=discovered.map(category=>{
+   const stats=getCategoryStats(category);
+   const status=stats.open?'OUVERTE':'FERMÉE';
+   const color=stats.open?'#27865b':'#b34b4b';
+   const shown=attempts.filter(item=>item.category===category&&item.type!=='verification');
+
+   return `
+    <div class="item">
+     <button class="btn secondary" style="width:100%;text-align:left" onclick="this.nextElementSibling.classList.toggle('hidden')">
+      <b>${escapeHtml(category)}</b>
+      <span style="float:right;color:${color}">${status}</span>
+      <p class="muted">${stats.percentage}% d'acceptation · ${stats.total} tentative(s)</p>
+     </button>
+     <div class="hidden">
+      ${shown.map(item=>{
+       const p1=item.player1||{},p2=item.player2||{};
+       return `<div class="notice">
+        <b>${escapeHtml(item.title||'Proposition')}</b>
+        <p>${escapeHtml(p1.name||'Joueur 1')} : ${answerLabel[p1.answer]||'—'}</p>
+        ${item.playerCount===1?'':`<p>${escapeHtml(p2.name||'Joueur 2')} : ${answerLabel[p2.answer]||'—'}</p>`}
+       </div>`;
+      }).join('')}
+     </div>
+    </div>`;
+  }).join('');
+ }else{
+  html+='<div class="notice">Aucune catégorie découverte pour le moment.</div>';
+ }
+
+ // TOUTES LES TENTATIVES
  if(attempts.length){
   html+='<h3>Toutes les tentatives ('+attempts.length+')</h3>';
-  html+=attempts.map((item,index)=>{
+  html+=attempts.map(item=>{
    const date=new Date(item.date);
    const dateLabel=Number.isNaN(date.getTime())?'Date inconnue':date.toLocaleString('fr-FR',{dateStyle:'short',timeStyle:'short'});
    const p1=item.player1||{},p2=item.player2||{};
@@ -406,6 +450,8 @@ function renderHistory(){
  }else{
   html+='<div class="notice">Aucune tentative enregistrée pour le moment.</div>';
  }
+
+ // ANCIENNES PARTIES
  if(entries.length){
   html+='<h3>Anciennes parties</h3>';
   html+=entries.map((entry,index)=>{
@@ -416,6 +462,7 @@ function renderHistory(){
    return '<div class="item"><b>Partie '+(entries.length-index)+'</b><p class="muted">'+dateLabel+'</p><div class="stats-row"><span>✓ '+accepted+' envie(s) acceptée(s)</span><span>◇ '+curious+' curiosité(s)</span></div></div>';
   }).join('');
  }
+
  el.innerHTML=html;
 }
 function renderStats(){document.getElementById('statRounds').textContent=data.rounds||0;document.getElementById('statMatches').textContent=data.matches||0;document.getElementById('statsText').textContent=`${data.rounds||0} partie(s) terminée(s).`}

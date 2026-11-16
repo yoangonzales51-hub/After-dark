@@ -50,6 +50,8 @@
   <div class="h">Jouer à distance</div>
   <p class="muted">Connectez chacun votre compte, puis créez un couple ou rejoignez celui de votre partenaire avec son code d’invitation.</p>
   <div class="notice">Chaque réponse est enregistrée séparément. Une carte ne rejoint l’historique et les statistiques qu’après les deux réponses. Vous pouvez continuer à jouer pendant qu’une carte attend votre partenaire.</div>
+  <div class="panel" style="padding:13px;margin:12px 0"><div class="h" style="font-size:19px">Votre profil</div><label class="muted" for="remoteInitialName">Prénom ou surnom</label><input class="field" id="remoteInitialName" maxlength="32" placeholder="Votre prénom ou surnom"><label class="muted" for="remoteInitialAvatar">Photo de profil (facultatif)</label><input class="field" id="remoteInitialAvatar" type="file" accept="image/jpeg,image/png,image/webp"><p class="muted small">Vous pourrez modifier ces informations dans Paramètres à tout moment.</p><button class="btn secondary" onclick="remoteSaveInitialProfile()">Enregistrer mon profil</button></div>
+  <div id="remoteAuthFields">
   <label class="muted" for="remoteEmail">Adresse e-mail</label>
   <input class="field" id="remoteEmail" type="email" autocomplete="email" placeholder="vous@exemple.com">
   <label class="muted" for="remotePassword">Mot de passe</label>
@@ -57,7 +59,7 @@
   <div class="grid2" style="margin-top:12px">
     <button class="btn" onclick="remoteSignUp()">Créer mon compte</button>
     <button class="btn secondary" onclick="remoteSignIn()">Se connecter</button>
-  </div>
+  </div></div>
   <div class="divider"></div>
   <div class="h" style="font-size:20px">Associer vos deux comptes</div>
   <label class="muted" for="remoteCoupleName">Nom du couple (pour créer)</label>
@@ -843,6 +845,13 @@ async function remoteRefreshProfile(){
  }catch(e){console.warn('AFTER DARK profile',e);const status=document.getElementById('accountStatus');if(status)status.textContent='Profil indisponible : '+(e.message||String(e))}
 }
 function openAccountSettings(){show('settings');remoteRefreshProfile()}
+async function remoteSaveInitialProfile(){
+ if(!afterDarkUser)return;
+ const name=document.getElementById('remoteInitialName')?.value.trim().slice(0,32)||'';
+ const file=document.getElementById('remoteInitialAvatar')?.files?.[0];
+ if(!name&&!file)return;
+ try{let avatar_url=afterDarkProfile.avatar_url||'';if(file){if(!['image/jpeg','image/png','image/webp'].includes(file.type))throw new Error('Choisissez une image JPG, PNG ou WEBP.');if(file.size>5*1024*1024)throw new Error('La photo doit faire 5 Mo maximum.');const ext=file.type==='image/png'?'png':file.type==='image/webp'?'webp':'jpg';const path=afterDarkUser.id+'/'+Date.now()+'.'+ext;const {error:uploadError}=await afterDarkSupabase.storage.from('after-dark-avatars').upload(path,file,{upsert:true,contentType:file.type});if(uploadError)throw uploadError;avatar_url=afterDarkSupabase.storage.from('after-dark-avatars').getPublicUrl(path).data.publicUrl;}const {error}=await afterDarkSupabase.from('profiles').upsert({id:afterDarkUser.id,display_name:name||afterDarkProfile.display_name||null,avatar_url:avatar_url||null},{onConflict:'id'});if(error)throw error;await remoteRefreshProfile();}catch(e){remoteStatus('Profil non enregistré : '+(e.message||String(e)),true)}
+}
 async function remoteSaveProfile(){
  if(!afterDarkUser){alert('Connectez-vous pour modifier votre profil.');return}
  try{
@@ -910,7 +919,8 @@ async function remoteRefreshStatus(){
   const {data:{user},error}=await sb.auth.getUser();
   if(error)throw error;
   afterDarkUser=user||null;afterDarkCoupleId=null;
-  if(!user){remoteStatus('Vous n’êtes pas connecté. Créez un compte ou connectez-vous.');return;}
+  document.getElementById('remoteAuthFields')?.classList.toggle('hidden',!!user);
+  if(!user){remoteRenderProfileBar();remoteStatus('Vous n’êtes pas connecté. Créez un compte ou connectez-vous.');return;}
   const {data:member,error:memberError}=await sb.from('couple_members').select('couple_id').eq('user_id',user.id).maybeSingle();
   if(memberError)throw memberError;
   afterDarkCoupleId=member?.couple_id||null;
@@ -933,15 +943,15 @@ async function remoteSignUp(){
  try{
   const {data,error}=await sb.auth.signUp({email,password});
   if(error)throw error;
-  if(data.session){await remoteRefreshStatus();remoteResult('Compte créé. Vous êtes connecté.');}
-  else remoteStatus('Demande de création envoyée. Si la confirmation e-mail est activée, ouvrez le message reçu avant de vous connecter. Évitez de redemander plusieurs e-mails à la suite.');
+  if(data.session){await remoteRefreshStatus();await remoteSaveInitialProfile();remoteResult('Compte créé. Vous êtes connecté.');}
+  else remoteStatus('Demande de création envoyée. Après confirmation de votre e-mail, connectez-vous ici : votre profil pourra être enregistré ensuite.');
  }catch(e){remoteStatus('Inscription impossible : '+(e.message||String(e)),true);}
 }
 async function remoteSignIn(){
  const sb=initRemoteClient();if(!sb)return;
  const email=document.getElementById('remoteEmail').value.trim(),password=document.getElementById('remotePassword').value;
  if(!email||!password){remoteStatus('Saisissez votre e-mail et votre mot de passe.',true);return;}
- try{const {error}=await sb.auth.signInWithPassword({email,password});if(error)throw error;await remoteRefreshStatus();remoteResult('Connexion réussie.');if(afterDarkCoupleId){show('home');}else remoteStatus('Connecté. Créez un couple ou rejoignez celui de votre partenaire pour terminer la configuration.');}
+ try{const {error}=await sb.auth.signInWithPassword({email,password});if(error)throw error;await remoteRefreshStatus();await remoteSaveInitialProfile();remoteResult('Connexion réussie.');if(afterDarkCoupleId){show('home');}else remoteStatus('Connecté. Créez un couple ou rejoignez celui de votre partenaire pour terminer la configuration.');}
  catch(e){remoteStatus('Connexion impossible : '+(e.message||String(e)),true);}
 }
 async function remoteCreateCouple(){
@@ -969,7 +979,7 @@ async function remoteJoinCouple(){
 }
 async function remoteSignOut(){
  const sb=initRemoteClient();if(!sb)return;
- try{if(remoteGame.channel){await sb.removeChannel(remoteGame.channel);remoteGame.channel=null}if(remoteGame.todoChannel){await sb.removeChannel(remoteGame.todoChannel);remoteGame.todoChannel=null}if(remoteGame.coupleChannel){await sb.removeChannel(remoteGame.coupleChannel);remoteGame.coupleChannel=null}const {error}=await sb.auth.signOut();remoteGame.partnerOnline=false;remoteRenderPartnerPresence();if(error)throw error;afterDarkUser=null;afterDarkCoupleId=null;remoteGame.roundId=null;remoteGame.state=null;afterDarkLatestRoundId=null;remoteStatus('Vous êtes déconnecté.');remoteResult('');}
+ try{if(remoteGame.channel){await sb.removeChannel(remoteGame.channel);remoteGame.channel=null}if(remoteGame.todoChannel){await sb.removeChannel(remoteGame.todoChannel);remoteGame.todoChannel=null}if(remoteGame.coupleChannel){await sb.removeChannel(remoteGame.coupleChannel);remoteGame.coupleChannel=null}const {error}=await sb.auth.signOut();if(error)throw error;remoteGame.partnerOnline=false;afterDarkUser=null;afterDarkCoupleId=null;afterDarkPartnerId=null;remoteGame.roundId=null;remoteGame.state=null;afterDarkLatestRoundId=null;remoteRenderProfileBar();document.getElementById('remoteAuthFields')?.classList.remove('hidden');remoteStatus('Vous êtes déconnecté.');remoteResult('');show('remoteSetup');}
  catch(e){remoteStatus('Déconnexion impossible : '+(e.message||String(e)),true);}
 }
 

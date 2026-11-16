@@ -42,12 +42,12 @@
 </style></head><body><main class="wrap">
 <header class="brand"><small>JUST YOU. JUST US.</small><h1>AFTER DARK</h1><p>VOTRE ESPACE PRIVÉ À DEUX</p></header>
 <section class="panel" id="home"><div class="eyebrow">Bienvenue</div><div class="h">Un espace rien qu'à vous.</div><p class="muted">Explorez vos envies à votre rythme. Vos réponses restent privées jusqu'à votre décision de les révéler.</p><p class="notice">Une seule partie, plusieurs façons de jouer. Choisissez votre mode et changez-en quand vous le souhaitez.</p><button class="btn" onclick="openModeCenter()">Continuer / choisir le mode</button><div class="home-tools"><button class="chip" onclick="show('stats')">Statistiques</button><button class="chip" onclick="show('custom')">Mes cartes</button><button class="chip" onclick="show('settings')">Réglages</button></div><p class="muted small" id="savedStatus">Sauvegarde locale activée sur cet appareil.</p></section>
-<section class="panel hidden" id="modeCenter"><div class="eyebrow">Espace de jeu</div><div class="h">Changer de mode</div><p class="muted">Votre progression reste attachée à la même partie. Le changement de mode ne crée pas une nouvelle partie et ne remet pas les cartes à zéro.</p><div class="mode-choice primary-mode"><div class="mode-icon">⌁</div><div class="mode-copy"><b>À distance · deux téléphones</b><span>Mode principal prévu pour jouer chacun sur son appareil, avec synchronisation des réponses et de la progression.</span><em>Comptes et association du couple · synchronisation du jeu à venir</em></div><button class="btn" onclick="openRemoteSetup()">Configurer</button></div><div class="mode-choice"><div class="mode-icon">♧</div><div class="mode-copy"><b>Téléphone commun</b><span>Vous jouez ensemble sur un seul appareil, chacun répond à son tour.</span></div><button class="btn secondary" onclick="switchPlayMode('duo')">Utiliser</button></div><div class="mode-choice"><div class="mode-icon">♡</div><div class="mode-copy"><b>Solo</b><span>Une seule réponse par carte, avec la même progression et les mêmes succès.</span></div><button class="btn secondary" onclick="switchPlayMode('solo')">Utiliser</button></div><div id="remoteModeNotice" class="notice hidden">Le mode à distance n'est pas encore connecté au serveur. Cette version prépare l'espace de changement de mode, mais ne synchronise pas encore deux téléphones. N'activez pas ce mode pour une vraie partie à distance avant la connexion Supabase.</div><button class="btn ghost" onclick="goPlay()">Retour au jeu</button></section>
+<section class="panel hidden" id="modeCenter"><div class="eyebrow">Espace de jeu</div><div class="h">Changer de mode</div><p class="muted">Votre progression reste attachée à la même partie. Le changement de mode ne crée pas une nouvelle partie et ne remet pas les cartes à zéro.</p><div class="mode-choice primary-mode"><div class="mode-icon">⌁</div><div class="mode-copy"><b>À distance · deux téléphones</b><span>Mode principal prévu pour jouer chacun sur son appareil, avec synchronisation des cartes et des réponses sur vos deux appareils.</span><em>Connexion sécurisée · réponses privées jusqu’à ce que les deux aient répondu</em></div><button class="btn" onclick="openRemoteSetup()">Configurer</button></div><div class="mode-choice"><div class="mode-icon">♧</div><div class="mode-copy"><b>Téléphone commun</b><span>Vous jouez ensemble sur un seul appareil, chacun répond à son tour.</span></div><button class="btn secondary" onclick="switchPlayMode('duo')">Utiliser</button></div><div class="mode-choice"><div class="mode-icon">♡</div><div class="mode-copy"><b>Solo</b><span>Une seule réponse par carte, avec la même progression et les mêmes succès.</span></div><button class="btn secondary" onclick="switchPlayMode('solo')">Utiliser</button></div><div id="remoteModeNotice" class="notice hidden">Connectez vos deux comptes et associez-les avec un code d’invitation pour jouer à distance.</div><button class="btn ghost" onclick="goPlay()">Retour au jeu</button></section>
 <section class="panel hidden" id="remoteSetup">
   <div class="eyebrow">Connexion sécurisée</div>
   <div class="h">Jouer à distance</div>
   <p class="muted">Connectez chacun votre compte, puis créez un couple ou rejoignez celui de votre partenaire avec son code d’invitation.</p>
-  <div class="notice">Cette étape active les comptes et l’association du couple. La synchronisation des cartes et des réponses entre deux téléphones sera ajoutée dans l’étape suivante : le jeu à distance n’est donc pas encore prêt à être utilisé.</div>
+  <div class="notice">Chaque réponse est enregistrée séparément. Une carte ne rejoint l’historique et les statistiques qu’après les deux réponses. Vous pouvez continuer à jouer pendant qu’une carte attend votre partenaire.</div>
   <label class="muted" for="remoteEmail">Adresse e-mail</label>
   <input class="field" id="remoteEmail" type="email" autocomplete="email" placeholder="vous@exemple.com">
   <label class="muted" for="remotePassword">Mot de passe</label>
@@ -66,8 +66,19 @@
   <button class="btn secondary" onclick="remoteJoinCouple()">Rejoindre le couple</button>
   <div id="remoteAccountStatus" class="notice" style="margin-top:14px" aria-live="polite">Vous n’êtes pas connecté.</div>
   <div id="remoteInviteResult" class="notice hidden" style="margin-top:10px"></div>
+  <button class="btn" onclick="remoteStartOrResume()">Lancer / reprendre la partie à distance</button>
   <button class="btn ghost" onclick="remoteSignOut()">Se déconnecter</button>
   <button class="btn ghost" onclick="openModeCenter()">Retour aux modes</button>
+</section>
+<section class="panel hidden" id="remoteGame">
+  <div class="eyebrow">Partie synchronisée</div><div class="h">Votre aventure à deux</div>
+  <div id="remoteGameStatus" class="notice" aria-live="polite">Connexion à la partie…</div>
+  <div id="remoteSelectedCard" class="hidden"></div>
+  <div id="remoteAvailableCards"></div>
+  <div id="remoteWaitingCards"></div>
+  <div id="remoteCompletedCards"></div>
+  <button class="btn secondary" onclick="remoteRefreshRoundState()">Actualiser</button>
+  <button class="btn ghost" onclick="openRemoteSetup()">Retour aux paramètres du couple</button>
 </section>
 <section class="panel hidden" id="setup"><div class="eyebrow">Configuration du couple</div><div class="h">Vos prénoms ou surnoms</div><label class="muted" id="p1Label">Joueur</label><input class="field" id="p1" maxlength="24" placeholder="Ex. Alex"><label class="muted" id="p2Label">Deuxième joueur</label><input class="field" id="p2" maxlength="24" placeholder="Ex. Sam"><div class="notice" style="margin-top:12px">Vos noms sont conservés avec votre progression. Vous pourrez changer de mode depuis « Mode » sans créer une nouvelle partie.</div><button class="btn" onclick="saveSetup()">Enregistrer et jouer</button><button class="btn ghost" onclick="show('home')">Retour</button></section>
 <section class="panel hidden" id="game"><div class="row"><div><div class="eyebrow">Sélection privée</div><div class="h" id="turnName">À toi</div></div></div><div class="swipe-stage" id="swipeStage"><div class="swipe-feedback" id="swipeFeedback" aria-hidden="true"><span id="swipeFeedbackText">OUI</span><i></i></div><div class="card" id="gameCard"><div><div class="symbol">✦</div><span class="pill" id="cardType">DÉCOUVERTE</span> <span class="pill" id="level">SOFT</span><h3 id="cardTitle"></h3><p id="cardDesc"></p><div id="explainWrap" class="hidden"><button class="btn ghost" type="button" onclick="toggleExplanation()">C’est quoi ?</button><p id="cardExplanation" class="notice hidden"></p></div></div><div class="muted small">Fais glisser cette carte dans la direction de ta réponse.</div></div></div><div class="swipe-hint">← NON · ↑ WHY NOT · OUI → · ↓ PASSER</div></section>
@@ -106,7 +117,7 @@ function allCards(){return [...baseCards.map(c=>({...c,type:c.type||c.kind||'dis
 function findCard(id){return allCards().find(c=>c.id===id)||mythicCatalog.find(c=>c.id===id)||null}
 function displayCard(c){if(!c)return null;if(c.kind==='mythic')return {...c,type:'mythic',level:'MYTHIQUE',cat:c.category,desc:c.desc,explanation:c.explanation||null};return c}
 function setMode(m){mode=m;document.getElementById('sameTab').classList.toggle('active',m==='same');document.getElementById('remoteTab').classList.toggle('active',m==='remote');document.getElementById('sameIntro').classList.toggle('hidden',m!=='same');document.getElementById('remoteIntro').classList.toggle('hidden',m!=='remote')}
-function show(id){['home','modeCenter','remoteSetup','setup','game','handoff','results','stats','custom','settings','todo','success','history'].forEach(x=>{let e=document.getElementById(x);if(e)e.classList.toggle('hidden',x!==id)});const nav=document.getElementById('bottomNav');if(nav)nav.classList.toggle('hidden',['setup','handoff'].includes(id));const active=id==='todo'?'navTodo':id==='success'?'navSuccess':id==='history'?'navHistory':id==='modeCenter'?'navMode':'navPlay';['navPlay','navTodo','navSuccess','navHistory','navMode'].forEach(x=>document.getElementById(x)?.classList.toggle('active',x===active));if(id==='stats')renderStats();if(id==='custom')renderCustom();if(id==='todo')renderTodo();if(id==='success')renderAchievements();if(id==='history')renderHistory()}
+function show(id){['home','modeCenter','remoteSetup','remoteGame','setup','game','handoff','results','stats','custom','settings','todo','success','history'].forEach(x=>{let e=document.getElementById(x);if(e)e.classList.toggle('hidden',x!==id)});const nav=document.getElementById('bottomNav');if(nav)nav.classList.toggle('hidden',['setup','handoff'].includes(id));const active=id==='todo'?'navTodo':id==='success'?'navSuccess':id==='history'?'navHistory':id==='modeCenter'?'navMode':'navPlay';['navPlay','navTodo','navSuccess','navHistory','navMode'].forEach(x=>document.getElementById(x)?.classList.toggle('active',x===active));if(id==='stats')renderStats();if(id==='remoteGame')remoteRenderRound();if(id==='custom')renderCustom();if(id==='todo')renderTodo();if(id==='success')renderAchievements();if(id==='history')renderHistory()}
 function goPlay(){if(session.active){resume()}else{show('home')}}
 function openModeCenter(){const n=document.getElementById('remoteModeNotice');if(n)n.classList.add('hidden');show('modeCenter')}
 function showRemoteNotice(){const n=document.getElementById('remoteModeNotice');if(n)n.classList.remove('hidden')}
@@ -846,6 +857,130 @@ async function remoteSignOut(){
  try{const {error}=await sb.auth.signOut();if(error)throw error;afterDarkUser=null;afterDarkCoupleId=null;remoteStatus('Vous êtes déconnecté.');remoteResult('');}
  catch(e){remoteStatus('Déconnexion impossible : '+(e.message||String(e)),true);}
 }
+
+
+let remoteGame={roundId:null,state:null,selectedCardId:null,channel:null,busy:false,lastSyncedRound:null};
+let afterDarkLatestRoundId=null;
+function remoteAnswerLabel(v){return ({yes:'OUI',no:'NON',maybe:'WHY NOT',pass:'PASSER',skip:'PASSER'})[v]||'—'}
+function remoteSetStatus(message,isError=false){const el=document.getElementById('remoteGameStatus');if(el){el.textContent=message;el.style.borderColor=isError?'rgba(255,90,100,.55)':''}}
+async function remoteRefreshLatestRound(){
+ if(!afterDarkSupabase||!afterDarkCoupleId)return;
+ try{
+  const {data,error}=await afterDarkSupabase.from('remote_rounds').select('id,status,created_at').eq('couple_id',afterDarkCoupleId).eq('status','playing').order('created_at',{ascending:false}).limit(1).maybeSingle();
+  if(error)throw error;
+  afterDarkLatestRoundId=data?.id||null;
+ }catch(e){console.warn('AFTER DARK remote latest round',e);afterDarkLatestRoundId=null}
+}
+function remoteSubscribeRound(){
+ if(!afterDarkSupabase||!remoteGame.roundId)return;
+ if(remoteGame.channel){afterDarkSupabase.removeChannel(remoteGame.channel);remoteGame.channel=null}
+ const id=remoteGame.roundId;
+ remoteGame.channel=afterDarkSupabase.channel('after-dark-round-'+id)
+  .on('postgres_changes',{event:'UPDATE',schema:'public',table:'remote_rounds',filter:'id=eq.'+id},()=>remoteRefreshRoundState())
+  .subscribe();
+}
+async function remoteStartOrResume(){
+ const sb=initRemoteClient();if(!sb)return;
+ try{
+  const {data:{user},error}=await sb.auth.getUser();if(error)throw error;if(!user)throw new Error('Connectez-vous d’abord.');
+  if(!afterDarkCoupleId)await remoteRefreshStatus();
+  if(!afterDarkCoupleId)throw new Error('Créez un couple ou rejoignez celui de votre partenaire.');
+  await remoteRefreshLatestRound();
+  if(afterDarkLatestRoundId){
+   remoteGame.roundId=afterDarkLatestRoundId;
+   await remoteRefreshRoundState();
+   remoteSubscribeRound();
+   show('remoteGame');
+   remoteResult('Partie en cours retrouvée. Vous pouvez reprendre où vous en étiez.');
+   return;
+  }
+  const chosen=selectedCards().filter(c=>c.type==='independent'||c.type==='discovery');
+  const cards=chosen.filter(c=>isCategoryOpen(c.cat||c.category||'Non classée'))
+   .sort((a,b)=>{
+    const ta=a.themeId||'',tb=b.themeId||'';
+    if(ta!==tb)return ta.localeCompare(tb);
+    if(a.type!==b.type)return a.type==='discovery'?-1:1;
+    return (a.alternativeIndex??0)-(b.alternativeIndex??0);
+   })
+   .map((c,position)=>({card_id:c.id,position,card_type:c.type,theme_id:c.themeId||null,alternative_index:c.alternativeIndex??0,linked_realization_id:c.linkedRealizationId||null}));
+  if(!cards.length)throw new Error('Aucune carte disponible dans la sélection actuelle.');
+  const {data:roundId,error:createError}=await sb.rpc('create_remote_round_v2',{p_cards:cards});
+  if(createError)throw createError;
+  remoteGame.roundId=roundId;remoteGame.state=null;remoteGame.selectedCardId=null;
+  await remoteRefreshRoundState();remoteSubscribeRound();show('remoteGame');
+ }catch(e){remoteStatus('Impossible de lancer la partie : '+(e.message||String(e)),true)}
+}
+async function remoteRefreshRoundState(){
+ if(!afterDarkSupabase||!remoteGame.roundId)return;
+ try{
+  const {data,error}=await afterDarkSupabase.rpc('remote_round_state_v2',{p_round_id:remoteGame.roundId});
+  if(error)throw error;
+  remoteGame.state=data;remoteSyncPairedResults(data);remoteRenderRound();
+ }catch(e){remoteSetStatus('Synchronisation impossible : '+(e.message||String(e)),true)}
+}
+function remoteSyncPairedResults(state){
+ if(!state||!Array.isArray(state.cards))return;
+ const previousMode=session.playerMode;session.playerMode='duo';
+ state.cards.filter(x=>x.completed&&!x.cancelled&&x.my_answer&&x.partner_answer).forEach(item=>{
+  const c=findCard(item.card_id);if(!c)return;
+  if(data.attempts.some(a=>a.remoteRoundId===remoteGame.roundId&&a.cardId===c.id))return;
+  const a=item.my_answer==='skip'?'pass':item.my_answer,b=item.partner_answer==='skip'?'pass':item.partner_answer;
+  const category=c.cat||c.category||c.themeId||'Non classée';
+  const outcome=(a==='pass'||b==='pass')?'pass':isYesMatch(a,b)?'accepted':isMaybeMatch(a,b)?'curious':(a==='no'||b==='no')?'refused':'other';
+  data.attempts.unshift({remoteRoundId:remoteGame.roundId,date:new Date().toISOString(),cardId:c.id,title:c.title||'Proposition',category,type:c.type||c.kind||'unknown',themeId:c.themeId||null,playerCount:2,player1:{name:'Vous',answer:a},player2:{name:'Partenaire',answer:b},outcome});
+  if(outcome==='accepted'){
+   recordAccepted(c);
+   if(c.type==='discovery'){
+    const realization=findCard(c.linkedRealizationId);
+    if(realization)addTodo(realization,'unlocked',c.id);
+    if(c.themeId)markAchievementVisible(c.themeId);
+   }
+  }else if(outcome==='curious')recordCuriosity(c);
+  else if(c.type==='discovery'&&outcome==='refused')rememberRefusedCard(c);
+ });
+ if(state.status==='completed'&&!data.history.some(x=>x.remoteRoundId===remoteGame.roundId)){
+  const attempts=data.attempts.filter(x=>x.remoteRoundId===remoteGame.roundId);
+  const accepted=attempts.filter(x=>x.outcome==='accepted').map(x=>x.cardId);
+  const curious=attempts.filter(x=>x.outcome==='curious').map(x=>x.cardId);
+  data.rounds=(data.rounds||0)+1;data.matches=(data.matches||0)+accepted.length;
+  data.history.unshift({remoteRoundId:remoteGame.roundId,date:new Date().toISOString(),accepted,curious});
+ }
+ session.playerMode=previousMode;save();
+}
+function remoteRenderRound(){
+ const state=remoteGame.state;if(!state)return;
+ const cards=state.cards||[];
+ const available=cards.filter(x=>x.eligible&&!x.completed&&!x.cancelled&&!x.my_answer);
+ const waiting=cards.filter(x=>x.my_answer&&!x.completed&&!x.cancelled);
+ const completed=cards.filter(x=>x.completed&&!x.cancelled);
+ const selected=cards.find(x=>x.card_id===remoteGame.selectedCardId);
+ remoteSetStatus(state.status==='completed'?'Partie terminée · toutes les cartes disponibles ont été traitées.':state.completed_count+' / '+state.total+' cartes traitées à deux · '+waiting.length+' en attente de votre partenaire · '+available.length+' disponibles.');
+ const selectedEl=document.getElementById('remoteSelectedCard');
+ if(selected){
+  const c=findCard(selected.card_id);
+  selectedEl.classList.remove('hidden');
+  selectedEl.innerHTML=c?'<div class="card"><span class="pill">'+(c.type==='discovery'?'DÉCOUVERTE':'DÉFI INDÉPENDANT')+'</span><h3>'+escapeHtml(c.title||'Proposition')+'</h3><p>'+escapeHtml(c.desc||'')+'</p><p class="muted">Votre réponse sera enregistrée immédiatement. La carte ne sera comptée qu’après la réponse de votre partenaire.</p></div><div class="actions"><button class="yes" onclick="remoteSubmitAnswer(\'yes\')">OUI</button><button onclick="remoteSubmitAnswer(\'no\')">NON</button><button onclick="remoteSubmitAnswer(\'maybe\')">WHY NOT</button><button onclick="remoteSubmitAnswer(\'pass\')">PASSER</button></div><button class="btn ghost" onclick="remoteGame.selectedCardId=null;remoteRenderRound()">Retour aux cartes</button>':'<div class="notice">Cette carte n’est plus disponible.</div>';
+ }else selectedEl.classList.add('hidden');
+ document.getElementById('remoteAvailableCards').innerHTML='<h3>Cartes disponibles ('+available.length+')</h3>'+(available.length?available.map(x=>{const c=findCard(x.card_id);return c?'<button class="btn secondary" onclick="remoteSelectCard(\''+escapeHtml(x.card_id)+'\')">'+escapeHtml(c.title||'Proposition')+'</button>':''}).join(''):'<div class="notice">Aucune autre carte à répondre pour le moment.</div>');
+ document.getElementById('remoteWaitingCards').innerHTML='<h3>En attente de votre partenaire ('+waiting.length+')</h3>'+(waiting.length?waiting.map(x=>{const c=findCard(x.card_id);return '<div class="item"><b>'+escapeHtml(c?.title||x.card_id)+'</b><p class="muted">Votre réponse : '+remoteAnswerLabel(x.my_answer)+' · réponse du partenaire en attente</p></div>'}).join(''):'<div class="muted small">Aucune carte en attente.</div>');
+ document.getElementById('remoteCompletedCards').innerHTML='<h3>Cartes terminées à deux ('+completed.length+')</h3>'+(completed.length?completed.map(x=>{const c=findCard(x.card_id);return '<div class="item"><b>'+escapeHtml(c?.title||x.card_id)+'</b><p class="muted">Vous : '+remoteAnswerLabel(x.my_answer)+' · Partenaire : '+remoteAnswerLabel(x.partner_answer)+'</p></div>'}).join(''):'<div class="muted small">Les réponses apparaîtront ici uniquement lorsque vous aurez tous les deux répondu.</div>');
+}
+function remoteSelectCard(id){remoteGame.selectedCardId=id;remoteRenderRound()}
+async function remoteSubmitAnswer(answer){
+ if(remoteGame.busy||!remoteGame.roundId||!remoteGame.selectedCardId)return;
+ remoteGame.busy=true;
+ try{
+  const {data,error}=await afterDarkSupabase.rpc('submit_remote_card_answer',{p_round_id:remoteGame.roundId,p_card_id:remoteGame.selectedCardId,p_answer:answer});
+  if(error)throw error;
+  const cardCompleted=!!data?.card_completed;
+  remoteGame.selectedCardId=null;
+  await remoteRefreshRoundState();
+  if(!cardCompleted)remoteSetStatus('Réponse enregistrée. La carte est dans « En attente de votre partenaire » ; vous pouvez continuer avec une autre carte.');
+ }catch(e){remoteSetStatus('Réponse non enregistrée : '+(e.message||String(e)),true)}
+ finally{remoteGame.busy=false;remoteRenderRound()}
+}
+window.addEventListener('online',()=>{if(remoteGame.roundId)remoteRefreshRoundState()});
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&remoteGame.roundId)remoteRefreshRoundState()});
 
 // Enregistrement PWA : nécessite une origine HTTPS (ou localhost).
 if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost')) {

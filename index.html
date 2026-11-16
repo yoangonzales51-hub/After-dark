@@ -230,6 +230,19 @@ function renderCats(){ /* Les filtres restent dans la configuration, jamais sur 
 function renderGame(){
  renderCats();const stage=document.getElementById('swipeStage');if(stage)stage.removeAttribute('data-swipe');const cardEl=document.getElementById('gameCard');if(cardEl){cardEl.classList.remove('dragging','swipe-out');cardEl.style.transform='translate3d(0,0,0) rotate(0deg)';cardEl.style.opacity='1'}let c=currentCard();if(cardEl)cardEl.classList.toggle('category-verification',!!c&&c.type==='categoryVerification');
  if(!c){document.getElementById('cardTitle').textContent='Fin du paquet';document.getElementById('cardDesc').textContent='La sélection est terminée.';return}
+  const swipeHint=document.querySelector('.swipe-hint');
+ if(c.type==='waiting'){
+  document.getElementById('turnName').textContent='Aventure en pause';
+  document.getElementById('level').textContent='AFTER DARK';
+  document.getElementById('cardType').textContent='EN ATTENTE';
+  document.getElementById('cardTitle').textContent=c.title;
+  document.getElementById('cardDesc').textContent=c.desc;
+  const ew=document.getElementById('explainWrap');
+  if(ew)ew.classList.add('hidden');
+  if(swipeHint)swipeHint.classList.add('hidden');
+  return;
+ }
+ if(swipeHint)swipeHint.classList.remove('hidden');
  document.getElementById('turnName').textContent=session.playerMode==='solo'?'À toi de choisir':'Au tour de '+data.names[session.partner];
  document.getElementById('level').textContent=c.level||c.tier||'MYTHIQUE';document.getElementById('cardTitle').textContent=c.title||c.achievementTitle||'Proposition';document.getElementById('cardDesc').textContent=c.desc||'';
  const ew=document.getElementById('explainWrap'),ep=document.getElementById('cardExplanation');if(ew&&ep){ew.classList.toggle('hidden',!c.explanation);ep.textContent=c.explanation||'';ep.classList.add('hidden')}
@@ -331,23 +344,27 @@ function finishCategoryVerification(c){
  const a=session.answers[0][c.id];
  const b=session.answers[1][c.id];
  const returnSession=session.returnSession;
+ const reopenedCategory=session.categoryToReopen;
  recordAttempt(c,a,b);
  if(a==='yes'&&b==='yes'){
-  data.categoryOverrides[session.categoryToReopen]=true;
+  data.categoryOverrides[reopenedCategory]=true;
   alert('Catégorie rouverte ! Vous pouvez continuer votre aventure.');
  }else{
   alert('La catégorie reste fermée. Deux OUI étaient nécessaires.');
  }
-  const reopenedCategory=session.categoryToReopen;
-  if(returnSession){
+ if(returnSession){
   session=returnSession;
   playerMode=session.playerMode||'duo';
   session.needsHandoff=false;
   if(a==='yes'&&b==='yes'&&session.waitingForContent){
-   const newEntries=buildCategoryQueue(session.categoryToReopen);
+   const newEntries=buildCategoryQueue(reopenedCategory);
+   newEntries.forEach(item=>{
+    if(item.kind==='theme'){
+     session.themeProgress[item.themeId]={phase:'discovery',altIndex:0};
+    }
+   });
    session.queue.push(...newEntries);
    session.waitingForContent=false;
-   session.themeProgress=session.themeProgress||{};
   }
   save();
   renderGame();
@@ -488,16 +505,7 @@ function answer(v){
   }
   processRoundPair(c);
   session.partner=0;
-   const next=currentCard();
- if(!next||next.type==='waiting'){
-  save();
-  renderGame();
-  show('game');
-  return;
- }
-   finishGame();
-   return;
-  }
+  session.needsHandoff=false;
   save();
   renderGame();
   show('game');
@@ -516,14 +524,12 @@ function answer(v){
  }
  processRoundPair(c);
  session.partner=0;
-  const next=currentCard();
+ const next=currentCard();
  if(!next||next.type==='waiting'){
+  session.needsHandoff=false;
   save();
   renderGame();
   show('game');
-  return;
- }
-  finishGame();
   return;
  }
  session.needsHandoff=true;
